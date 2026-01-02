@@ -1,0 +1,39 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/a2a-types",
+    # "crates/a2a-transport",      # TODO: uncomment when crate is created
+    # "crates/a2a-transport-wasi", # TODO: uncomment when crate is created
+    # "crates/a2a-client",         # TODO: uncomment when crate is created
+    # "crates/a2a-server",         # TODO: uncomment when crate is created
+    # "crates/a2a-wasm-component", # TODO: uncomment when crate is created
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://gitlab.com/lx-industries/a2a-rust"
+
+[workspace.dependencies]
+# Internal crates
+a2a-types = { path = "crates/a2a-types" }
+a2a-transport = { path = "crates/a2a-transport" }
+a2a-transport-wasi = { path = "crates/a2a-transport-wasi" }
+a2a-client = { path = "crates/a2a-client" }
+a2a-server = { path = "crates/a2a-server" }
+
+# Core dependencies
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.148"
+thiserror = "2.0.17"
+futures-core = "0.3.31"
+bytes = "1.11.0"
+
+# Build dependencies
+typify = "0.5.0"
+schemars = "0.8"
+
+# WASM dependencies
+wasi = "0.14.7"
+wit-bindgen = "0.50.0"
