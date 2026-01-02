@@ -442,6 +442,45 @@ pub enum Error {
 
 ---
 
+## Dependencies (Pinned Versions)
+
+All external crates pinned to latest stable versions as of 2026-01-02:
+
+### Core Dependencies
+
+| Crate | Version | Used By |
+|-------|---------|---------|
+| `serde` | 1.0.228 | a2a-types |
+| `serde_json` | 1.0.148 | a2a-types, a2a-client, a2a-server |
+| `thiserror` | 2.0.17 | a2a-transport, a2a-client, a2a-server |
+| `futures-core` | 0.3.31 | a2a-transport, a2a-client, a2a-server |
+| `bytes` | 1.11.0 | a2a-transport |
+
+### Build Dependencies
+
+| Crate | Version | Used By |
+|-------|---------|---------|
+| `typify` | 0.5.0 | a2a-types (build.rs) |
+
+### WASM Dependencies
+
+| Crate | Version | Used By |
+|-------|---------|---------|
+| `wasi` | 0.14.7+wasi-0.2.4 | a2a-transport-wasi (WASIP2) |
+| `wasip3` | 0.3.1+wasi-0.3.0-rc-2025-09-16 | a2a-transport-wasi (WASIP3 async) |
+| `wit-bindgen` | 0.50.0 | a2a-wasm-component |
+
+### Native Dependencies (later)
+
+| Crate | Version | Used By |
+|-------|---------|---------|
+| `reqwest` | 0.13.1 | a2a-transport-reqwest |
+| `hyper` | 1.8.1 | a2a-transport-hyper |
+| `tokio` | 1.48.0 | a2a-transport-hyper |
+| `tokio-stream` | 0.1.17 | a2a-client, a2a-server (native) |
+
+---
+
 ## Implementation Order
 
 1. `a2a-types` - Foundation, unblocks everything
