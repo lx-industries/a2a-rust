@@ -462,12 +462,84 @@ pub enum Error {
 
 ---
 
+## Testing Strategy
+
+Cross-implementation testing using existing A2A test suites. No mock servers/clients in Rust - real implementations test each other.
+
+### Test Layers
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Unit Tests (Rust only)                                   │
+│    - Type serialization/deserialization round-trips         │
+│    - JSON-RPC envelope building/parsing                     │
+│    - SSE frame parsing                                      │
+│    - Error type mapping                                     │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Cross-Implementation Tests                               │
+│                                                             │
+│    Rust Client testing:                                     │
+│    ┌─────────────────┐     ┌─────────────────┐             │
+│    │  Rust Client    │────▶│  JS SUT Agent   │             │
+│    └─────────────────┘     └─────────────────┘             │
+│                                                             │
+│    Rust Server testing:                                     │
+│    ┌─────────────────┐     ┌─────────────────┐             │
+│    │  Python Client  │────▶│  Rust Server    │             │
+│    └─────────────────┘     └─────────────────┘             │
+│    ┌─────────────────┐     ┌─────────────────┐             │
+│    │  JS Client      │────▶│  Rust Server    │             │
+│    └─────────────────┘     └─────────────────┘             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### External Test Resources
+
+**JavaScript TCK (Test Compatibility Kit):**
+- Location: `a2a-js/tck/agent/`
+- SUT Agent runs on `http://localhost:41241`
+- Endpoints: `/a2a/jsonrpc` (JSON-RPC), `/a2a/rest` (REST)
+- Agent card: `/.well-known/agent-card.json`
+- Launch: `npm run tck:sut-agent`
+
+**Python Test Suite:**
+- `tests/integration/test_client_server_integration.py` - Client against real servers
+- `tests/e2e/push_notifications/agent_app.py` - Complete working agent
+- `tests/test_types.py` - All type fixtures and validation
+
+**Go Test Suite:**
+- `e2e/jsonrpc_test.go` - E2E streaming validation
+- `a2a/json_test.go` - Serialization round-trip tests
+
+### Test Execution
+
+**Testing Rust client:**
+1. Start JS SUT Agent: `cd a2a-js && npm run tck:sut-agent`
+2. Run Rust client tests against `http://localhost:41241`
+
+**Testing Rust server:**
+1. Start Rust server on a port
+2. Run Python integration tests: `pytest tests/integration/test_client_server_integration.py`
+3. Run JS e2e tests adapted to point at Rust server
+
+### Unit Test Coverage (Rust)
+
+| Crate | Test Focus |
+|-------|------------|
+| `a2a-types` | Serde round-trips, type validation, fixture compatibility with Python/Go/JS |
+| `a2a-transport` | HttpRequest/HttpResponse building |
+| `a2a-client` | JSON-RPC envelope construction, SSE parsing |
+| `a2a-server` | Request routing, TaskStore trait |
+
+---
+
 ## References
 
 - [A2A Protocol Specification](https://a2a-protocol.org/latest/specification/)
 - [A2A Protocol Definitions](https://a2a-protocol.org/latest/definitions/)
 - [a2a-go](https://github.com/a2aproject/a2a-go)
 - [a2a-python](https://github.com/a2aproject/a2a-python)
+- [a2a-js](https://github.com/a2aproject/a2a-js) (includes TCK)
 - [wasi crate](https://docs.rs/wasi)
 - [wasip3 crate](https://crates.io/crates/wasip3)
 - [typify](https://github.com/oxidecomputer/typify)
