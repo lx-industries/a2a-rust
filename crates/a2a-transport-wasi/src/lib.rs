@@ -2,8 +2,10 @@
 //! WASI HTTP transport implementation.
 
 pub mod error;
+pub mod poll;
 
 pub use error::WasiError;
+pub use poll::{PollableExt, WasiPollFuture};
 
 use a2a_transport::{HttpClient, HttpRequest, HttpResponse};
 use bytes::Bytes;
