@@ -11,7 +11,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use wasi::http::outgoing_handler;
 use wasi::http::types::{
-    ErrorCode, Fields, FutureIncomingResponse, IncomingBody, IncomingResponse,
+    ErrorCode, Fields, IncomingBody, IncomingResponse,
     OutgoingBody, OutgoingRequest, Scheme,
 };
 
@@ -195,3 +195,132 @@ fn to_http_response(response: IncomingResponse) -> Result<HttpResponse, WasiErro
         body: Bytes::from(body_data),
     })
 }
+
+impl HttpClient for WasiHttpClient {
+    type Error = WasiError;
+
+    fn request(
+        &self,
+        request: HttpRequest,
+    ) -> impl Future<Output = Result<HttpResponse, Self::Error>> + Send {
+        async move {
+            // Build and send request
+            let outgoing = build_outgoing_request(&request)?;
+            let body = outgoing
+                .body()
+                .map_err(|()| WasiError::HttpRequestBodyError("failed to get body".into()))?;
+
+            // Write body
+            write_body(&body, request.body.as_deref().unwrap_or(&[]))?;
+            OutgoingBody::finish(body, None)
+                .map_err(|e| WasiError::HttpRequestBodyError(format!("{e:?}")))?;
+
+            // Send request
+            let future_response = outgoing_handler::handle(outgoing, None)
+                .map_err(from_error_code)?;
+
+            // Wait for response
+            let pollable = future_response.subscribe();
+            pollable.wait().await;
+
+            // Get response
+            let response = future_response
+                .get()
+                .ok_or(WasiError::InternalError("response not ready".into()))?
+                .map_err(|()| WasiError::InternalError("response get failed".into()))?
+                .map_err(from_error_code)?;
+
+            to_http_response(response)
+        }
+    }
+
+    fn request_stream(
+        &self,
+        request: HttpRequest,
+    ) -> impl Future<
+        Output = Result<
+            impl Stream<Item = Result<Bytes, Self::Error>> + Send,
+            Self::Error,
+        >,
+    > + Send {
+        async move {
+            // Build and send request
+            let outgoing = build_outgoing_request(&request)?;
+            let body = outgoing
+                .body()
+                .map_err(|()| WasiError::HttpRequestBodyError("failed to get body".into()))?;
+
+            write_body(&body, request.body.as_deref().unwrap_or(&[]))?;
+            OutgoingBody::finish(body, None)
+                .map_err(|e| WasiError::HttpRequestBodyError(format!("{e:?}")))?;
+
+            let future_response = outgoing_handler::handle(outgoing, None)
+                .map_err(from_error_code)?;
+
+            let pollable = future_response.subscribe();
+            pollable.wait().await;
+
+            let response = future_response
+                .get()
+                .ok_or(WasiError::InternalError("response not ready".into()))?
+                .map_err(|()| WasiError::InternalError("response get failed".into()))?
+                .map_err(from_error_code)?;
+
+            let incoming_body = response
+                .consume()
+                .map_err(|()| WasiError::BodyAlreadyConsumed)?;
+
+            Ok(WasiBodyStream::new(incoming_body))
+        }
+    }
+}
+
+/// Streaming body reader for WASI HTTP responses.
+pub struct WasiBodyStream {
+    body: Option<IncomingBody>,
+    stream: Option<wasi::io::streams::InputStream>,
+}
+
+impl WasiBodyStream {
+    fn new(body: IncomingBody) -> Self {
+        let stream = body.stream().ok();
+        Self {
+            body: Some(body),
+            stream,
+        }
+    }
+}
+
+impl Stream for WasiBodyStream {
+    type Item = Result<Bytes, WasiError>;
+
+    fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let stream = match &self.stream {
+            Some(s) => s,
+            None => return Poll::Ready(None),
+        };
+
+        match stream.read(4096) {
+            Ok(chunk) if chunk.is_empty() => {
+                // Clean up
+                self.stream = None;
+                if let Some(body) = self.body.take() {
+                    IncomingBody::finish(body);
+                }
+                Poll::Ready(None)
+            }
+            Ok(chunk) => Poll::Ready(Some(Ok(Bytes::from(chunk)))),
+            Err(wasi::io::streams::StreamError::Closed) => {
+                self.stream = None;
+                if let Some(body) = self.body.take() {
+                    IncomingBody::finish(body);
+                }
+                Poll::Ready(None)
+            }
+            Err(e) => Poll::Ready(Some(Err(WasiError::StreamError(format!("{e:?}"))))),
+        }
+    }
+}
+
+// SAFETY: WasiBodyStream is single-threaded (WASM is single-threaded)
+unsafe impl Send for WasiBodyStream {}
