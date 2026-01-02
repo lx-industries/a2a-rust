@@ -1,0 +1,1220 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://a2a-protocol.org/schema/a2a.json",
+  "title": "A2A Protocol Types",
+  "description": "Agent-to-Agent (A2A) Protocol type definitions",
+  "definitions": {
+    "Role": {
+      "type": "string",
+      "enum": ["user", "agent"],
+      "description": "The role of a message sender"
+    },
+    "TaskState": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "working",
+        "input-required",
+        "completed",
+        "canceled",
+        "failed",
+        "rejected",
+        "auth-required",
+        "unknown"
+      ],
+      "description": "The lifecycle state of a task"
+    },
+    "TransportProtocol": {
+      "type": "string",
+      "enum": ["jsonrpc", "grpc", "http+json"],
+      "description": "Transport protocol for agent communication"
+    },
+    "SecuritySchemeLocation": {
+      "type": "string",
+      "enum": ["header", "query", "cookie"],
+      "description": "Location for API key security scheme"
+    },
+    "TextPart": {
+      "type": "object",
+      "required": ["kind", "text"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "text"
+        },
+        "text": {
+          "type": "string",
+          "description": "The text content"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Optional metadata"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FilePart": {
+      "type": "object",
+      "required": ["kind", "file"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "file"
+        },
+        "file": {
+          "$ref": "#/definitions/FileContent"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Optional metadata"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FileContent": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "File name for display"
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type of the file"
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "URI reference to the file"
+        },
+        "bytes": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Base64-encoded file content"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DataPart": {
+      "type": "object",
+      "required": ["kind", "data"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "data"
+        },
+        "data": {
+          "description": "Structured JSON data"
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type of the data"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Optional metadata"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Part": {
+      "oneOf": [
+        { "$ref": "#/definitions/TextPart" },
+        { "$ref": "#/definitions/FilePart" },
+        { "$ref": "#/definitions/DataPart" }
+      ],
+      "description": "A content part within a message or artifact"
+    },
+    "Message": {
+      "type": "object",
+      "required": ["role", "parts"],
+      "properties": {
+        "messageId": {
+          "type": "string",
+          "description": "Unique message identifier (UUID)"
+        },
+        "role": {
+          "$ref": "#/definitions/Role"
+        },
+        "parts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Part" },
+          "description": "Content parts of the message"
+        },
+        "taskId": {
+          "type": "string",
+          "description": "Associated task identifier"
+        },
+        "contextId": {
+          "type": "string",
+          "description": "Context for grouping related interactions"
+        },
+        "referenceTaskIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "References to related tasks"
+        },
+        "extensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "URIs of relevant extensions"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Extension-specific metadata"
+        },
+        "kind": {
+          "type": "string",
+          "const": "message"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Artifact": {
+      "type": "object",
+      "required": ["artifactId", "parts"],
+      "properties": {
+        "artifactId": {
+          "type": "string",
+          "description": "Unique artifact identifier within task scope"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Purpose explanation"
+        },
+        "parts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Part" },
+          "description": "Content segments"
+        },
+        "extensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Relevant extension URIs"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Extension-specific metadata"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskStatus": {
+      "type": "object",
+      "required": ["state"],
+      "properties": {
+        "state": {
+          "$ref": "#/definitions/TaskState"
+        },
+        "message": {
+          "$ref": "#/definitions/Message",
+          "description": "Human-readable status details"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Task": {
+      "type": "object",
+      "required": ["id", "contextId", "status"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Server-generated unique identifier"
+        },
+        "contextId": {
+          "type": "string",
+          "description": "Context for grouping related interactions"
+        },
+        "status": {
+          "$ref": "#/definitions/TaskStatus"
+        },
+        "history": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Message" },
+          "description": "Conversation history"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Artifact" },
+          "description": "Generated outputs"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Extension-specific metadata"
+        },
+        "kind": {
+          "type": "string",
+          "const": "task"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AgentProvider": {
+      "type": "object",
+      "required": ["organization"],
+      "properties": {
+        "organization": {
+          "type": "string",
+          "description": "Organization name"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Organization URL"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AgentCapabilities": {
+      "type": "object",
+      "properties": {
+        "streaming": {
+          "type": "boolean",
+          "description": "Supports real-time streaming updates"
+        },
+        "pushNotifications": {
+          "type": "boolean",
+          "description": "Supports webhook push notifications"
+        },
+        "stateTransitionHistory": {
+          "type": "boolean",
+          "description": "Maintains state transition history"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AgentSkill": {
+      "type": "object",
+      "required": ["id", "name", "description"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique skill identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable skill name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the skill"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Descriptive keywords"
+        },
+        "examples": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Example usage scenarios"
+        },
+        "inputModes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Supported input MIME types"
+        },
+        "outputModes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Supported output MIME types"
+        },
+        "security": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "description": "Security requirements for this skill"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AgentInterface": {
+      "type": "object",
+      "required": ["url", "transport"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Interface endpoint URL"
+        },
+        "transport": {
+          "$ref": "#/definitions/TransportProtocol"
+        }
+      },
+      "additionalProperties": false
+    },
+    "APIKeySecurityScheme": {
+      "type": "object",
+      "required": ["type", "name", "in"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "apiKey"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the API key parameter"
+        },
+        "in": {
+          "$ref": "#/definitions/SecuritySchemeLocation"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "HTTPAuthSecurityScheme": {
+      "type": "object",
+      "required": ["type", "scheme"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "http"
+        },
+        "scheme": {
+          "type": "string",
+          "description": "HTTP auth scheme (e.g., bearer, basic)"
+        },
+        "bearerFormat": {
+          "type": "string",
+          "description": "Format hint for bearer tokens (e.g., JWT)"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AuthorizationCodeOAuthFlow": {
+      "type": "object",
+      "required": ["authorizationUrl", "tokenUrl", "scopes"],
+      "properties": {
+        "authorizationUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Authorization endpoint URL"
+        },
+        "tokenUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Token endpoint URL"
+        },
+        "refreshUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Refresh token endpoint URL"
+        },
+        "scopes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Available scopes and descriptions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ImplicitOAuthFlow": {
+      "type": "object",
+      "required": ["authorizationUrl", "scopes"],
+      "properties": {
+        "authorizationUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Authorization endpoint URL"
+        },
+        "refreshUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Refresh token endpoint URL"
+        },
+        "scopes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Available scopes and descriptions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PasswordOAuthFlow": {
+      "type": "object",
+      "required": ["tokenUrl", "scopes"],
+      "properties": {
+        "tokenUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Token endpoint URL"
+        },
+        "refreshUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Refresh token endpoint URL"
+        },
+        "scopes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Available scopes and descriptions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ClientCredentialsOAuthFlow": {
+      "type": "object",
+      "required": ["tokenUrl", "scopes"],
+      "properties": {
+        "tokenUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Token endpoint URL"
+        },
+        "refreshUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Refresh token endpoint URL"
+        },
+        "scopes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Available scopes and descriptions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "OAuthFlows": {
+      "type": "object",
+      "properties": {
+        "authorizationCode": {
+          "$ref": "#/definitions/AuthorizationCodeOAuthFlow"
+        },
+        "implicit": {
+          "$ref": "#/definitions/ImplicitOAuthFlow"
+        },
+        "password": {
+          "$ref": "#/definitions/PasswordOAuthFlow"
+        },
+        "clientCredentials": {
+          "$ref": "#/definitions/ClientCredentialsOAuthFlow"
+        }
+      },
+      "additionalProperties": false
+    },
+    "OAuth2SecurityScheme": {
+      "type": "object",
+      "required": ["type", "flows"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "oauth2"
+        },
+        "flows": {
+          "$ref": "#/definitions/OAuthFlows"
+        },
+        "oauth2MetadataUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "RFC8414 OAuth 2.0 metadata URL"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "OpenIdConnectSecurityScheme": {
+      "type": "object",
+      "required": ["type", "openIdConnectUrl"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "openIdConnect"
+        },
+        "openIdConnectUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "OpenID Connect discovery endpoint"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "MutualTLSSecurityScheme": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "mutualTLS"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SecurityScheme": {
+      "oneOf": [
+        { "$ref": "#/definitions/APIKeySecurityScheme" },
+        { "$ref": "#/definitions/HTTPAuthSecurityScheme" },
+        { "$ref": "#/definitions/OAuth2SecurityScheme" },
+        { "$ref": "#/definitions/OpenIdConnectSecurityScheme" },
+        { "$ref": "#/definitions/MutualTLSSecurityScheme" }
+      ],
+      "description": "Security scheme for agent authentication"
+    },
+    "AgentCardSignature": {
+      "type": "object",
+      "required": ["algorithm", "keyId", "signature"],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "description": "Signature algorithm (e.g., ES256)"
+        },
+        "keyId": {
+          "type": "string",
+          "description": "Key identifier"
+        },
+        "signature": {
+          "type": "string",
+          "description": "JWS signature"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AgentCard": {
+      "type": "object",
+      "required": ["name", "description", "version", "url", "skills", "capabilities"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable agent name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Agent purpose overview"
+        },
+        "version": {
+          "type": "string",
+          "description": "Agent version"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Agent endpoint URL"
+        },
+        "preferredTransport": {
+          "$ref": "#/definitions/TransportProtocol",
+          "description": "Preferred transport protocol"
+        },
+        "defaultInputModes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Default supported input MIME types"
+        },
+        "defaultOutputModes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Default supported output MIME types"
+        },
+        "skills": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AgentSkill" },
+          "description": "Available agent skills"
+        },
+        "capabilities": {
+          "$ref": "#/definitions/AgentCapabilities"
+        },
+        "provider": {
+          "$ref": "#/definitions/AgentProvider"
+        },
+        "securitySchemes": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/SecurityScheme" },
+          "description": "Named security schemes"
+        },
+        "security": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "description": "Security requirements (OR of ANDs)"
+        },
+        "additionalInterfaces": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AgentInterface" },
+          "description": "Alternative transport endpoints"
+        },
+        "documentationUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Reference documentation URL"
+        },
+        "iconUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Agent icon URL"
+        },
+        "protocolVersion": {
+          "type": "string",
+          "default": "0.3.0",
+          "description": "A2A protocol version"
+        },
+        "supportsAuthenticatedExtendedCard": {
+          "type": "boolean",
+          "description": "Extended card available with authentication"
+        },
+        "signatures": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AgentCardSignature" },
+          "description": "JWS signatures for card verification"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PushNotificationAuthenticationInfo": {
+      "type": "object",
+      "required": ["schemes"],
+      "properties": {
+        "schemes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Supported authentication methods"
+        },
+        "credentials": {
+          "type": "string",
+          "description": "Optional credentials"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PushNotificationConfig": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Webhook callback URL"
+        },
+        "id": {
+          "type": "string",
+          "description": "Configuration identifier"
+        },
+        "token": {
+          "type": "string",
+          "description": "Validation token"
+        },
+        "authentication": {
+          "$ref": "#/definitions/PushNotificationAuthenticationInfo"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskStatusUpdateEvent": {
+      "type": "object",
+      "required": ["kind", "taskId", "contextId", "status", "final"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "status-update"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "contextId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/TaskStatus"
+        },
+        "final": {
+          "type": "boolean",
+          "description": "Indicates this is the final event"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskArtifactUpdateEvent": {
+      "type": "object",
+      "required": ["kind", "taskId", "contextId", "artifact"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "artifact-update"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "contextId": {
+          "type": "string"
+        },
+        "artifact": {
+          "$ref": "#/definitions/Artifact"
+        },
+        "append": {
+          "type": "boolean",
+          "description": "Concatenate with previous content"
+        },
+        "lastChunk": {
+          "type": "boolean",
+          "description": "Final fragment indicator"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "StreamEvent": {
+      "oneOf": [
+        { "$ref": "#/definitions/TaskStatusUpdateEvent" },
+        { "$ref": "#/definitions/TaskArtifactUpdateEvent" }
+      ],
+      "description": "Streaming event for task updates"
+    },
+    "MessageSendConfiguration": {
+      "type": "object",
+      "properties": {
+        "acceptedOutputModes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Accepted response MIME types"
+        },
+        "historyLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of messages to retrieve"
+        },
+        "blocking": {
+          "type": "boolean",
+          "description": "Wait for task completion"
+        },
+        "pushNotificationConfig": {
+          "$ref": "#/definitions/PushNotificationConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "MessageSendParams": {
+      "type": "object",
+      "required": ["message"],
+      "properties": {
+        "message": {
+          "$ref": "#/definitions/Message"
+        },
+        "configuration": {
+          "$ref": "#/definitions/MessageSendConfiguration"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskIdParams": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Task identifier"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskQueryParams": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Task identifier"
+        },
+        "historyLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of messages to retrieve"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskPushNotificationConfig": {
+      "type": "object",
+      "required": ["taskId", "pushNotificationConfig"],
+      "properties": {
+        "taskId": {
+          "type": "string"
+        },
+        "pushNotificationConfig": {
+          "$ref": "#/definitions/PushNotificationConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "JSONRPCRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "method"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ],
+          "description": "Request identifier"
+        },
+        "method": {
+          "type": "string",
+          "description": "Method name"
+        },
+        "params": {
+          "description": "Method parameters"
+        }
+      },
+      "additionalProperties": false
+    },
+    "JSONRPCError": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "description": "Error code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Error message"
+        },
+        "data": {
+          "description": "Additional error data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "JSONRPCResponse": {
+      "type": "object",
+      "required": ["jsonrpc", "id"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" },
+            { "type": "null" }
+          ],
+          "description": "Request identifier"
+        },
+        "result": {
+          "description": "Success result"
+        },
+        "error": {
+          "$ref": "#/definitions/JSONRPCError"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SendMessageRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ]
+        },
+        "method": {
+          "type": "string",
+          "const": "message/send"
+        },
+        "params": {
+          "$ref": "#/definitions/MessageSendParams"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SendStreamingMessageRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ]
+        },
+        "method": {
+          "type": "string",
+          "const": "message/stream"
+        },
+        "params": {
+          "$ref": "#/definitions/MessageSendParams"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GetTaskRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ]
+        },
+        "method": {
+          "type": "string",
+          "const": "tasks/get"
+        },
+        "params": {
+          "$ref": "#/definitions/TaskQueryParams"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CancelTaskRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ]
+        },
+        "method": {
+          "type": "string",
+          "const": "tasks/cancel"
+        },
+        "params": {
+          "$ref": "#/definitions/TaskIdParams"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskResubscriptionRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ]
+        },
+        "method": {
+          "type": "string",
+          "const": "tasks/resubscribe"
+        },
+        "params": {
+          "$ref": "#/definitions/TaskIdParams"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SetTaskPushNotificationConfigRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ]
+        },
+        "method": {
+          "type": "string",
+          "const": "tasks/pushNotificationConfig/set"
+        },
+        "params": {
+          "$ref": "#/definitions/TaskPushNotificationConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GetTaskPushNotificationConfigRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ]
+        },
+        "method": {
+          "type": "string",
+          "const": "tasks/pushNotificationConfig/get"
+        },
+        "params": {
+          "$ref": "#/definitions/TaskIdParams"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ListTaskPushNotificationConfigRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ]
+        },
+        "method": {
+          "type": "string",
+          "const": "tasks/pushNotificationConfig/list"
+        },
+        "params": {
+          "$ref": "#/definitions/TaskIdParams"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DeleteTaskPushNotificationConfigRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ]
+        },
+        "method": {
+          "type": "string",
+          "const": "tasks/pushNotificationConfig/delete"
+        },
+        "params": {
+          "$ref": "#/definitions/TaskIdParams"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GetAuthenticatedExtendedCardRequest": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method"],
+      "properties": {
+        "jsonrpc": {
+          "type": "string",
+          "const": "2.0"
+        },
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" }
+          ]
+        },
+        "method": {
+          "type": "string",
+          "const": "agent/getAuthenticatedExtendedCard"
+        }
+      },
+      "additionalProperties": false
+    },
+    "A2ARequest": {
+      "oneOf": [
+        { "$ref": "#/definitions/SendMessageRequest" },
+        { "$ref": "#/definitions/SendStreamingMessageRequest" },
+        { "$ref": "#/definitions/GetTaskRequest" },
+        { "$ref": "#/definitions/CancelTaskRequest" },
+        { "$ref": "#/definitions/TaskResubscriptionRequest" },
+        { "$ref": "#/definitions/SetTaskPushNotificationConfigRequest" },
+        { "$ref": "#/definitions/GetTaskPushNotificationConfigRequest" },
+        { "$ref": "#/definitions/ListTaskPushNotificationConfigRequest" },
+        { "$ref": "#/definitions/DeleteTaskPushNotificationConfigRequest" },
+        { "$ref": "#/definitions/GetAuthenticatedExtendedCardRequest" }
+      ],
+      "description": "Any A2A JSON-RPC request"
+    },
+    "SendMessageResponse": {
+      "oneOf": [
+        { "$ref": "#/definitions/Task" },
+        { "$ref": "#/definitions/Message" }
+      ],
+      "description": "Response from message/send - either a Task or Message"
+    }
+  }
+}
