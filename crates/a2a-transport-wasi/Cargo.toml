@@ -1,0 +1,12 @@
+[package]
+name = "a2a-transport-wasi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+a2a-transport.workspace = true
+thiserror.workspace = true
+futures-core.workspace = true
+bytes.workspace = true
+wasi.workspace = true
