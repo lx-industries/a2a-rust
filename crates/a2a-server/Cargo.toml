@@ -1,0 +1,17 @@
+[package]
+name = "a2a-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+a2a-types.workspace = true
+a2a-transport.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+futures-core.workspace = true
+bytes.workspace = true
+
+[dev-dependencies]
+tokio = { version = "1.48.0", features = ["rt", "macros"] }
