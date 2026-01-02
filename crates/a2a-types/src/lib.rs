@@ -2,4 +2,5 @@
 
 // pub mod error;  // Will be created in a later task
 
-// Generated types will be included here
+// Include generated types
+include!(concat!(env!("OUT_DIR"), "/generated_types.rs"));
