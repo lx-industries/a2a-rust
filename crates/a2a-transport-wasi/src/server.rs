@@ -132,3 +132,70 @@ pub fn send_response(response: HttpResponse, outparam: ResponseOutparam) -> Resu
 
     Ok(())
 }
+
+/// Helper macro to implement the wasi:http/incoming-handler export.
+///
+/// This macro generates the necessary export implementation for your WASM component.
+/// The handler function receives an `HttpRequest` and must return an `HttpResponse`.
+///
+/// # Example
+///
+/// ```ignore
+/// use a2a_transport_wasi::{export_incoming_handler, server};
+/// use a2a_transport::{HttpRequest, HttpResponse};
+///
+/// struct MyHandler;
+///
+/// impl MyHandler {
+///     fn handle(request: HttpRequest) -> HttpResponse {
+///         HttpResponse {
+///             status: 200,
+///             headers: vec![("content-type".into(), "text/plain".into())],
+///             body: "Hello from WASI!".into(),
+///         }
+///     }
+/// }
+///
+/// export_incoming_handler!(MyHandler);
+/// ```
+#[macro_export]
+macro_rules! export_incoming_handler {
+    ($handler:ty) => {
+        // Export the handler using wit-bindgen generated code
+        ::wasi::http::proxy::export!($handler);
+
+        impl ::wasi::exports::http::incoming_handler::Guest for $handler {
+            fn handle(
+                request: ::wasi::http::types::IncomingRequest,
+                response_out: ::wasi::http::types::ResponseOutparam,
+            ) {
+                // Convert incoming request to our type
+                let http_request = match $crate::server::from_incoming_request(request) {
+                    Ok(req) => req,
+                    Err(e) => {
+                        // Send error response
+                        let error_response = ::a2a_transport::HttpResponse {
+                            status: 500,
+                            headers: vec![
+                                ("content-type".into(), "text/plain".into()),
+                            ],
+                            body: ::bytes::Bytes::from(format!("Request parse error: {e}")),
+                        };
+                        let _ = $crate::server::send_response(error_response, response_out);
+                        return;
+                    }
+                };
+
+                // Call the handler
+                let response = <$handler>::handle(http_request);
+
+                // Send response
+                if let Err(e) = $crate::server::send_response(response, response_out) {
+                    // Can't do much here since we already consumed response_out
+                    // Log would require a different mechanism
+                    let _ = e;
+                }
+            }
+        }
+    };
+}
