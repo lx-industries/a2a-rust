@@ -2,6 +2,7 @@
 
 pub mod error;
 
+#[allow(clippy::derivable_impls, clippy::clone_on_copy, clippy::large_enum_variant)]
 mod generated {
     // Re-export our error module so generated code can find ConversionError
     pub use super::error;

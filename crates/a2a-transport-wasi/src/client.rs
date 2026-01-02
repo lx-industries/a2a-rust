@@ -196,6 +196,7 @@ fn to_http_response(response: IncomingResponse) -> Result<HttpResponse, WasiErro
     })
 }
 
+#[allow(clippy::manual_async_fn)]
 impl HttpClient for WasiHttpClient {
     type Error = WasiError;
 

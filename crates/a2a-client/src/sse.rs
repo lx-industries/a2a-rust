@@ -47,12 +47,12 @@ impl SseParser {
         let mut id = None;
 
         for line in text.lines() {
-            if line.starts_with("event:") {
-                event = Some(line[6..].trim().to_string());
-            } else if line.starts_with("data:") {
-                data_lines.push(line[5..].trim().to_string());
-            } else if line.starts_with("id:") {
-                id = Some(line[3..].trim().to_string());
+            if let Some(rest) = line.strip_prefix("event:") {
+                event = Some(rest.trim().to_string());
+            } else if let Some(rest) = line.strip_prefix("data:") {
+                data_lines.push(rest.trim().to_string());
+            } else if let Some(rest) = line.strip_prefix("id:") {
+                id = Some(rest.trim().to_string());
             }
         }
 

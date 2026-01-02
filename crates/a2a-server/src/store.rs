@@ -73,15 +73,15 @@ impl TaskStore for InMemoryTaskStore {
         let result: Vec<_> = tasks
             .values()
             .filter(|task| {
-                if let Some(ref ctx) = filter.context_id {
-                    if task.get("context_id").and_then(|v| v.as_str()) != Some(ctx) {
-                        return false;
-                    }
+                if let Some(ref ctx) = filter.context_id
+                    && task.get("context_id").and_then(|v| v.as_str()) != Some(ctx)
+                {
+                    return false;
                 }
-                if let Some(ref status) = filter.status {
-                    if task.get("status").and_then(|v| v.get("state")).and_then(|v| v.as_str()) != Some(status) {
-                        return false;
-                    }
+                if let Some(ref status) = filter.status
+                    && task.get("status").and_then(|v| v.get("state")).and_then(|v| v.as_str()) != Some(status)
+                {
+                    return false;
                 }
                 true
             })
