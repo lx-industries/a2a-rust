@@ -86,3 +86,51 @@ impl HttpResponse {
             .map(|(_, v)| v.as_str())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_http_request_get() {
+        let req = HttpRequest::get("https://example.com");
+        assert_eq!(req.method, Method::Get);
+        assert_eq!(req.url, "https://example.com");
+        assert!(req.body.is_none());
+    }
+
+    #[test]
+    fn test_http_request_post() {
+        let req = HttpRequest::post("https://example.com", b"hello".as_slice());
+        assert_eq!(req.method, Method::Post);
+        assert!(req.body.is_some());
+    }
+
+    #[test]
+    fn test_http_request_with_header() {
+        let req = HttpRequest::get("https://example.com")
+            .with_header("Content-Type", "application/json");
+        assert_eq!(req.headers.len(), 1);
+        assert_eq!(req.headers[0], ("Content-Type".to_string(), "application/json".to_string()));
+    }
+
+    #[test]
+    fn test_http_response_header_lookup() {
+        let resp = HttpResponse::ok(b"test".as_slice())
+            .with_header("Content-Type", "application/json")
+            .with_header("X-Custom", "value");
+
+        assert_eq!(resp.header("content-type"), Some("application/json"));
+        assert_eq!(resp.header("Content-Type"), Some("application/json"));
+        assert_eq!(resp.header("x-custom"), Some("value"));
+        assert_eq!(resp.header("missing"), None);
+    }
+
+    #[test]
+    fn test_method_as_str() {
+        assert_eq!(Method::Get.as_str(), "GET");
+        assert_eq!(Method::Post.as_str(), "POST");
+        assert_eq!(Method::Put.as_str(), "PUT");
+        assert_eq!(Method::Delete.as_str(), "DELETE");
+    }
+}
