@@ -123,3 +123,75 @@ fn build_outgoing_request(request: &HttpRequest) -> Result<OutgoingRequest, Wasi
 
     Ok(outgoing)
 }
+
+/// Write the request body to an OutgoingBody.
+fn write_body(body: &OutgoingBody, data: &[u8]) -> Result<(), WasiError> {
+    if data.is_empty() {
+        return Ok(());
+    }
+    let stream = body
+        .write()
+        .map_err(|()| WasiError::HttpRequestBodyError("failed to get write stream".into()))?;
+
+    // Write in chunks (WASI streams have limited buffer sizes)
+    const CHUNK_SIZE: usize = 4096;
+    for chunk in data.chunks(CHUNK_SIZE) {
+        stream
+            .blocking_write_and_flush(chunk)
+            .map_err(|e| WasiError::HttpRequestBodyError(format!("{e:?}")))?;
+    }
+    drop(stream);
+    Ok(())
+}
+
+/// Read all data from an IncomingBody.
+fn read_body(body: IncomingBody) -> Result<Vec<u8>, WasiError> {
+    let stream = body
+        .stream()
+        .map_err(|()| WasiError::HttpResponseBodyError("failed to get read stream".into()))?;
+
+    let mut data = Vec::new();
+    loop {
+        match stream.read(4096) {
+            Ok(chunk) => {
+                if chunk.is_empty() {
+                    break;
+                }
+                data.extend_from_slice(&chunk);
+            }
+            Err(wasi::io::streams::StreamError::Closed) => break,
+            Err(e) => {
+                return Err(WasiError::HttpResponseBodyError(format!("{e:?}")));
+            }
+        }
+    }
+    drop(stream);
+    IncomingBody::finish(body);
+    Ok(data)
+}
+
+/// Convert IncomingResponse to HttpResponse.
+fn to_http_response(response: IncomingResponse) -> Result<HttpResponse, WasiError> {
+    let status = response.status();
+    let wasi_headers = response.headers();
+    let entries = wasi_headers.entries();
+
+    let mut headers = Vec::with_capacity(entries.len());
+    for (name, value) in entries {
+        let value_str = String::from_utf8(value)
+            .map_err(|_| WasiError::HttpProtocolError("invalid header value".into()))?;
+        headers.push((name, value_str));
+    }
+    drop(wasi_headers);
+
+    let body = response
+        .consume()
+        .map_err(|()| WasiError::BodyAlreadyConsumed)?;
+    let body_data = read_body(body)?;
+
+    Ok(HttpResponse {
+        status,
+        headers,
+        body: Bytes::from(body_data),
+    })
+}
