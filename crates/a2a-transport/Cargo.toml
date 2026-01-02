@@ -1,0 +1,10 @@
+[package]
+name = "a2a-transport"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+futures-core.workspace = true
+bytes.workspace = true
