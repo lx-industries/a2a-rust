@@ -1,0 +1,65 @@
+// crates/a2a-wasm-component/wit/a2a.wit
+package agent-compose:a2a@0.1.0;
+
+interface types {
+    enum role {
+        user,
+        agent,
+    }
+
+    record message {
+        role: role,
+        content: string,
+        context-id: option<string>,
+    }
+
+    enum task-status {
+        submitted,
+        working,
+        completed,
+        failed,
+        cancelled,
+    }
+
+    record task {
+        id: string,
+        status: task-status,
+        context-id: option<string>,
+        messages: list<message>,
+        artifacts: list<string>,
+    }
+
+    variant send-response {
+        message(message),
+        task(task),
+    }
+
+    record pending-item {
+        id: string,
+        from: string,
+        content: string,
+        context-id: option<string>,
+        task-id: option<string>,
+    }
+}
+
+interface client {
+    use types.{message, task, task-status, send-response};
+
+    send-message: func(to: string, content: string, context-id: option<string>) -> send-response;
+    get-task: func(task-id: string) -> option<task>;
+    list-tasks: func(context-id: option<string>, status: option<task-status>) -> list<task>;
+    cancel-task: func(task-id: string) -> option<task>;
+}
+
+interface server {
+    use types.{pending-item};
+
+    get-inbox: func(agent-name: string) -> list<pending-item>;
+    acknowledge: func(agent-name: string, item-id: string) -> bool;
+}
+
+world a2a-component {
+    export client;
+    export server;
+}

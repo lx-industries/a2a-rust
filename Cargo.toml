@@ -6,7 +6,7 @@ members = [
     "crates/a2a-transport-wasi",
     "crates/a2a-client",
     "crates/a2a-server",
-    # "crates/a2a-wasm-component", # TODO: uncomment when crate is created
+    "crates/a2a-wasm-component",
 ]
 
 [workspace.package]

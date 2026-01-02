@@ -1,0 +1,17 @@
+[package]
+name = "a2a-wasm-component"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+a2a-types.workspace = true
+a2a-client.workspace = true
+a2a-server.workspace = true
+a2a-transport-wasi.workspace = true
+wit-bindgen.workspace = true
+serde.workspace = true
+serde_json.workspace = true
