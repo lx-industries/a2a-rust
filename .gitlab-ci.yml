@@ -1,0 +1,101 @@
+# GitLab CI/CD configuration for a2a-rust
+
+include:
+  - local: '.gitlab/ci/images.gitlab-ci.yml'
+  - local: '.gitlab/ci/rust.gitlab-ci.yml'
+
+# Global variables for package versions
+variables:
+  # renovate: datasource=npm depName=@commitlint/cli
+  COMMITLINT_CLI_VERSION: "19.8.1"
+  # renovate: datasource=npm depName=@commitlint/config-conventional
+  COMMITLINT_CONFIG_VERSION: "19.8.1"
+  # renovate: datasource=npm depName=semantic-release
+  SEMANTIC_RELEASE_VERSION: "24.2.6"
+  # renovate: datasource=npm depName=@semantic-release/changelog
+  SEMANTIC_RELEASE_CHANGELOG_VERSION: "6.0.3"
+  # renovate: datasource=npm depName=@semantic-release/git
+  SEMANTIC_RELEASE_GIT_VERSION: "10.0.1"
+  # renovate: datasource=npm depName=@semantic-release/gitlab
+  SEMANTIC_RELEASE_GITLAB_VERSION: "13.2.3"
+  # renovate: datasource=npm depName=@semantic-release/exec
+  SEMANTIC_RELEASE_EXEC_VERSION: "7.0.3"
+  # renovate: datasource=github-releases depName=semantic-release-cargo/semantic-release-cargo
+  SEMANTIC_RELEASE_CARGO_VERSION: "2.4.44"
+  # renovate: datasource=npm depName=conventional-changelog-conventionalcommits
+  CONVENTIONAL_CHANGELOG_CONVENTIONALCOMMITS_VERSION: "8.1.0"
+
+# Workflow rules for automatic pipeline management
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+    on_job_failure: none
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /^chore\(release\):/
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - images
+  - check
+  - build
+  - test
+  - docs
+  - release
+
+# Commitlint job - validates commit messages
+commitlint:
+  image: node:22.16.0@sha256:252e85de9f1b74e3940f291f5dd9c3718b49f32e0b49dbc4f93fbf8e3df44772
+  stage: check
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_TAG"
+      when: never
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: "+refs/heads/main:refs/remotes/origin/main"
+  before_script:
+    - npm install -g @commitlint/cli@${COMMITLINT_CLI_VERSION} @commitlint/config-conventional@${COMMITLINT_CONFIG_VERSION}
+  script:
+    - commitlint --from=$(git merge-base origin/main HEAD) --to=$CI_COMMIT_SHA
+  interruptible: true
+
+# Semantic release template
+.semantic-release-template: &semantic-release-template
+  image: rust:1.92.0@sha256:910b9dc6597a3ef16458dc1d20520714d3526ddb038749b8d87334798064d672
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq curl
+    - curl -fsSL https://nodejs.org/dist/v22.16.0/node-v22.16.0-linux-x64.tar.xz | tar -xJ -C /usr/local --strip-components=1
+    - node --version
+    - npm --version
+    - npm install -g semantic-release@${SEMANTIC_RELEASE_VERSION} @semantic-release/changelog@${SEMANTIC_RELEASE_CHANGELOG_VERSION} @semantic-release/git@${SEMANTIC_RELEASE_GIT_VERSION} @semantic-release/gitlab@${SEMANTIC_RELEASE_GITLAB_VERSION} @semantic-release/exec@${SEMANTIC_RELEASE_EXEC_VERSION} conventional-changelog-conventionalcommits@${CONVENTIONAL_CHANGELOG_CONVENTIONALCOMMITS_VERSION}
+    - curl -L https://github.com/semantic-release-cargo/semantic-release-cargo/releases/download/v${SEMANTIC_RELEASE_CARGO_VERSION}/semantic-release-cargo-x86_64-unknown-linux-musl -o /usr/local/bin/semantic-release-cargo
+    - chmod +x /usr/local/bin/semantic-release-cargo
+    - semantic-release-cargo --version
+  interruptible: true
+
+# Semantic release dry-run for validation
+check:semantic-release:
+  <<: *semantic-release-template
+  stage: check
+  script:
+    - semantic-release --dry-run --no-ci
+
+# Semantic release job - creates releases
+semantic-release:
+  <<: *semantic-release-template
+  stage: release
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $RELEASE_ENABLED == "true"'
+    - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $RELEASE_ENABLED == "true"'
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: "+refs/heads/main:refs/remotes/origin/main"
+  before_script:
+    - !reference [.semantic-release-template, before_script]
+    - git config user.name "${GITLAB_USER_NAME}"
+    - git config user.email "${GITLAB_USER_EMAIL}"
+  script:
+    - semantic-release
+  interruptible: false
