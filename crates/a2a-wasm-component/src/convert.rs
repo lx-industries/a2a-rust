@@ -319,4 +319,175 @@ mod tests {
         });
         assert!(part_to_a2a(wit_part).is_err());
     }
+
+    #[test]
+    fn test_message_send_params_to_a2a() {
+        // Create a WIT MessageSendParams with message and configuration
+        let wit_params = MessageSendParams {
+            message: Message {
+                role: Role::User,
+                parts: vec![Part::Text(TextPart {
+                    text: "Hello, agent!".to_string(),
+                })],
+                message_id: Some("msg-123".to_string()),
+                task_id: Some("task-456".to_string()),
+                context_id: Some("ctx-789".to_string()),
+            },
+            configuration: Some(MessageSendConfig {
+                accepted_output_modes: Some(vec!["text".to_string(), "json".to_string()]),
+                history_length: Some(10),
+                blocking: Some(true),
+            }),
+        };
+
+        // Convert to a2a-types
+        let a2a_params = message_send_params_to_a2a(wit_params).unwrap();
+
+        // Verify message fields
+        assert!(matches!(a2a_params.message.role, a2a_types::Role::User));
+        assert_eq!(a2a_params.message.parts.len(), 1);
+        if let a2a_types::Part::TextPart(tp) = &a2a_params.message.parts[0] {
+            assert_eq!(tp.text, "Hello, agent!");
+        } else {
+            panic!("Expected TextPart");
+        }
+        assert_eq!(a2a_params.message.message_id, Some("msg-123".to_string()));
+        assert_eq!(a2a_params.message.task_id, Some("task-456".to_string()));
+        assert_eq!(a2a_params.message.context_id, Some("ctx-789".to_string()));
+
+        // Verify configuration fields
+        let config = a2a_params.configuration.unwrap();
+        assert_eq!(
+            config.accepted_output_modes,
+            vec!["text".to_string(), "json".to_string()]
+        );
+        assert_eq!(config.history_length, Some(10));
+        assert_eq!(config.blocking, Some(true));
+    }
+
+    #[test]
+    fn test_task_from_a2a_with_history() {
+        // Create an a2a-types Task with non-empty history
+        let a2a_task = a2a_types::Task {
+            id: "task-001".to_string(),
+            context_id: "ctx-001".to_string(),
+            status: a2a_types::TaskStatus {
+                state: a2a_types::TaskState::Working,
+                message: None,
+                timestamp: None,
+            },
+            history: vec![
+                a2a_types::Message {
+                    role: a2a_types::Role::User,
+                    parts: vec![a2a_types::Part::TextPart(a2a_types::TextPart {
+                        kind: "text".to_string(),
+                        text: "First message".to_string(),
+                        metadata: Default::default(),
+                    })],
+                    message_id: Some("msg-1".to_string()),
+                    task_id: Some("task-001".to_string()),
+                    context_id: Some("ctx-001".to_string()),
+                    kind: None,
+                    reference_task_ids: vec![],
+                    extensions: vec![],
+                    metadata: Default::default(),
+                },
+                a2a_types::Message {
+                    role: a2a_types::Role::Agent,
+                    parts: vec![a2a_types::Part::TextPart(a2a_types::TextPart {
+                        kind: "text".to_string(),
+                        text: "Second message".to_string(),
+                        metadata: Default::default(),
+                    })],
+                    message_id: Some("msg-2".to_string()),
+                    task_id: Some("task-001".to_string()),
+                    context_id: Some("ctx-001".to_string()),
+                    kind: None,
+                    reference_task_ids: vec![],
+                    extensions: vec![],
+                    metadata: Default::default(),
+                },
+            ],
+            artifacts: vec![],
+            kind: None,
+            metadata: Default::default(),
+        };
+
+        // Convert to WIT Task
+        let wit_task = task_from_a2a(&a2a_task).unwrap();
+
+        // Verify task fields
+        assert_eq!(wit_task.id, "task-001");
+        assert_eq!(wit_task.context_id, "ctx-001");
+        assert!(matches!(wit_task.status.state, TaskState::Working));
+
+        // Verify history is correctly converted
+        let history = wit_task.history.expect("Expected history to be Some");
+        assert_eq!(history.len(), 2);
+
+        // Check first message
+        assert!(matches!(history[0].role, Role::User));
+        assert_eq!(history[0].parts.len(), 1);
+        if let Part::Text(tp) = &history[0].parts[0] {
+            assert_eq!(tp.text, "First message");
+        } else {
+            panic!("Expected TextPart");
+        }
+
+        // Check second message
+        assert!(matches!(history[1].role, Role::Agent));
+        if let Part::Text(tp) = &history[1].parts[0] {
+            assert_eq!(tp.text, "Second message");
+        } else {
+            panic!("Expected TextPart");
+        }
+    }
+
+    #[test]
+    fn test_error_from_jsonrpc_preserves_code() {
+        // Test various error codes to ensure they are preserved exactly
+        let test_cases = vec![
+            (-32700, "Parse error"),
+            (-32600, "Invalid Request"),
+            (-32601, "Method not found"),
+            (-32602, "Invalid params"),
+            (-32603, "Internal error"),
+            (-32000, "Server error"),
+            (42, "Custom positive code"),
+            (0, "Zero code"),
+        ];
+
+        for (code, message) in test_cases {
+            let jsonrpc_err = a2a_types::JsonrpcError {
+                code: code as i64,
+                message: message.to_string(),
+                data: None,
+            };
+
+            let wit_err = error_from_a2a(&jsonrpc_err);
+
+            assert_eq!(wit_err.code, code, "Error code should be preserved exactly");
+            assert_eq!(wit_err.message, message, "Error message should be preserved");
+        }
+    }
+
+    #[test]
+    fn test_error_from_transport_uses_32603() {
+        // Test that error_from_string uses code -32603 (internal error)
+        let error_message = "Transport layer failure: connection reset".to_string();
+        let wit_err = error_from_string(error_message.clone());
+
+        assert_eq!(
+            wit_err.code, -32603,
+            "Transport errors should use -32603 (internal error)"
+        );
+        assert_eq!(wit_err.message, error_message);
+
+        // Test with another message to ensure consistency
+        let another_error = "Network timeout".to_string();
+        let wit_err2 = error_from_string(another_error.clone());
+
+        assert_eq!(wit_err2.code, -32603);
+        assert_eq!(wit_err2.message, another_error);
+    }
 }
