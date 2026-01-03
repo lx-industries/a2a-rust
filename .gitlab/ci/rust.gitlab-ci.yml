@@ -78,6 +78,27 @@ cargo-doc-test:
   needs:
     - build:x86_64-unknown-linux-gnu
 
+test:wasm-integration:
+  stage: test
+  image: rust:1.92.0
+  variables:
+    WASM_TARGET: wasm32-wasip2
+  before_script:
+    # Install uv for Python
+    - curl -LsSf https://astral.sh/uv/install.sh | sh
+    - source $HOME/.local/bin/env
+    # Install WASM target
+    - rustup target add wasm32-wasip2
+  script:
+    # Build the WASM component first
+    - cargo build -p a2a-wasm-component --target wasm32-wasip2 --release
+    # Run integration tests (spawns Python server internally)
+    - cargo test -p a2a-wasm-component --test integration_test -- --test-threads=1
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  interruptible: true
+
 # Lint jobs
 cargo-clippy:
   extends: .rust-template
