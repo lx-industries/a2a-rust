@@ -8,6 +8,14 @@ members = [
     "crates/a2a-server",
     "crates/a2a-wasm-component",
 ]
+# Exclude WASM-only crates from default builds (they require --target wasm32-wasip2)
+default-members = [
+    "crates/a2a-types",
+    "crates/a2a-transport",
+    "crates/a2a-transport-wasi",
+    "crates/a2a-client",
+    "crates/a2a-server",
+]
 
 [workspace.package]
 version = "0.1.0"

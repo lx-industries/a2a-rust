@@ -48,7 +48,7 @@ build:x86_64-unknown-linux-gnu:
   extends: .rust-template
   stage: build
   script:
-    - cargo build --workspace --all-features --verbose
+    - cargo build --all-features --verbose
     - sccache --show-stats || true
 
 build:wasm32-wasip2:
@@ -64,7 +64,7 @@ cargo-test:
   extends: .rust-template
   stage: test
   script:
-    - cargo test --workspace --all-features --verbose
+    - cargo test --all-features --verbose
     - sccache --show-stats || true
   needs:
     - build:x86_64-unknown-linux-gnu
@@ -73,7 +73,7 @@ cargo-doc-test:
   extends: .rust-template
   stage: test
   script:
-    - cargo test --workspace --doc --all-features
+    - cargo test --doc --all-features
     - sccache --show-stats || true
   needs:
     - build:x86_64-unknown-linux-gnu
@@ -86,7 +86,7 @@ cargo-clippy:
     - !reference [.rust-template, before_script]
     - cargo clippy --version
   script:
-    - cargo clippy --workspace --all-targets --all-features -- -D warnings
+    - cargo clippy --all-targets --all-features -- -D warnings
     - sccache --show-stats || true
 
 cargo-fmt:
@@ -103,7 +103,7 @@ cargo-doc:
   extends: .rust-template
   stage: docs
   script:
-    - cargo doc --workspace --all-features --no-deps
+    - cargo doc --all-features --no-deps
     - sccache --show-stats || true
   needs:
     - build:x86_64-unknown-linux-gnu
