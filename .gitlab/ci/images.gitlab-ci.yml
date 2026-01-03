@@ -1,0 +1,38 @@
+# Docker image build jobs for CI runners
+
+.docker-in-docker:
+  image: docker:27.5.1-dind@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce
+  services:
+    - docker:27.5.1-dind@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    GIT_FETCH_EXTRA_FLAGS: "+refs/heads/main:refs/remotes/origin/main"
+  before_script:
+    - docker info
+  interruptible: true
+
+build-image:x86_64-unknown-linux-gnu:
+  extends: .docker-in-docker
+  stage: images
+  rules:
+    - changes:
+        - images/rust/x86_64-unknown-linux-gnu/**/*
+    - if: '$FORCE_BUILD_IMAGES == "true"'
+  script:
+    - RUST_VERSION=$(grep "^FROM rust:" images/rust/x86_64-unknown-linux-gnu/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
+    - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+    - docker build -t ${CI_REGISTRY_IMAGE}/rust/x86_64-unknown-linux-gnu:${RUST_VERSION} images/rust/x86_64-unknown-linux-gnu
+    - docker push ${CI_REGISTRY_IMAGE}/rust/x86_64-unknown-linux-gnu:${RUST_VERSION}
+
+build-image:wasm32-wasip2:
+  extends: .docker-in-docker
+  stage: images
+  rules:
+    - changes:
+        - images/rust/wasm32-wasip2/**/*
+    - if: '$FORCE_BUILD_IMAGES == "true"'
+  script:
+    - RUST_VERSION=$(grep "^FROM rust:" images/rust/wasm32-wasip2/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
+    - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+    - docker build -t ${CI_REGISTRY_IMAGE}/rust/wasm32-wasip2:${RUST_VERSION} images/rust/wasm32-wasip2
+    - docker push ${CI_REGISTRY_IMAGE}/rust/wasm32-wasip2:${RUST_VERSION}
