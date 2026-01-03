@@ -69,10 +69,7 @@ fn block_on<F: std::future::Future>(future: F) -> F::Output {
 ///
 /// Creates an HTTP client and A2A client, converts the WIT params to a2a-types,
 /// makes the JSON-RPC call, and converts the response back to WIT types.
-pub fn send_message(
-    agent_url: String,
-    params: MessageSendParams,
-) -> Result<SendResponse, Error> {
+pub fn send_message(agent_url: String, params: MessageSendParams) -> Result<SendResponse, Error> {
     // Convert WIT params to a2a-types
     let a2a_params = convert::message_send_params_to_a2a(params).map_err(|e| Error {
         code: ERROR_CODE_CONVERSION,
@@ -130,7 +127,8 @@ pub fn get_task(
             })?;
             Ok(Some(wit_task))
         }
-        Err(ref e) if matches!(e, a2a_client::Error::JsonRpc { code, .. } if *code == ERROR_CODE_TASK_NOT_FOUND) => {
+        Err(ref e) if matches!(e, a2a_client::Error::JsonRpc { code, .. } if *code == ERROR_CODE_TASK_NOT_FOUND) =>
+        {
             // Task not found
             Ok(None)
         }
@@ -164,7 +162,8 @@ pub fn cancel_task(agent_url: String, id: String) -> Result<Option<Task>, Error>
             })?;
             Ok(Some(wit_task))
         }
-        Err(ref e) if matches!(e, a2a_client::Error::JsonRpc { code, .. } if *code == ERROR_CODE_TASK_NOT_FOUND) => {
+        Err(ref e) if matches!(e, a2a_client::Error::JsonRpc { code, .. } if *code == ERROR_CODE_TASK_NOT_FOUND) =>
+        {
             // Task not found
             Ok(None)
         }

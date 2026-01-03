@@ -95,9 +95,7 @@ impl server_exports::Guest for Component {
         server::on_get_task(id, history_length)
     }
 
-    fn on_cancel_task(
-        id: String,
-    ) -> Result<Option<server_exports::Task>, server_exports::Error> {
+    fn on_cancel_task(id: String) -> Result<Option<server_exports::Task>, server_exports::Error> {
         server::on_cancel_task(id)
     }
 }

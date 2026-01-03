@@ -206,9 +206,7 @@ pub fn send_response_from_a2a(
     response: &a2a_types::SendMessageResponse,
 ) -> Result<SendResponse, String> {
     match response {
-        a2a_types::SendMessageResponse::Task(task) => {
-            Ok(SendResponse::Task(task_from_a2a(task)?))
-        }
+        a2a_types::SendMessageResponse::Task(task) => Ok(SendResponse::Task(task_from_a2a(task)?)),
         a2a_types::SendMessageResponse::Message(msg) => {
             Ok(SendResponse::Message(message_from_a2a(msg)?))
         }
