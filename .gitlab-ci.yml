@@ -23,7 +23,7 @@ variables:
   # renovate: datasource=github-releases depName=semantic-release-cargo/semantic-release-cargo
   SEMANTIC_RELEASE_CARGO_VERSION: "2.4.44"
   # renovate: datasource=npm depName=conventional-changelog-conventionalcommits
-  CONVENTIONAL_CHANGELOG_CONVENTIONALCOMMITS_VERSION: "8.1.0"
+  CONVENTIONAL_CHANGELOG_CONVENTIONALCOMMITS_VERSION: "9.1.0"
 
 # Workflow rules for automatic pipeline management
 workflow:
@@ -47,7 +47,7 @@ stages:
 
 # Commitlint job - validates commit messages
 commitlint:
-  image: node:22.16.0@sha256:252e85de9f1b74e3940f291f5dd9c3718b49f32e0b49dbc4f93fbf8e3df44772
+  image: node:22.21.1-bookworm@sha256:8739e532180cfe09e03bbb4545fc725b044c921280532d7c9c1480ba2396837e
   stage: check
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
@@ -67,7 +67,7 @@ commitlint:
   image: rust:1.92.0@sha256:910b9dc6597a3ef16458dc1d20520714d3526ddb038749b8d87334798064d672
   before_script:
     - apt-get update -qq && apt-get install -y -qq curl
-    - curl -fsSL https://nodejs.org/dist/v22.16.0/node-v22.16.0-linux-x64.tar.xz | tar -xJ -C /usr/local --strip-components=1
+    - curl -fsSL https://nodejs.org/dist/v22.21.1/node-v22.21.1-linux-x64.tar.xz | tar -xJ -C /usr/local --strip-components=1
     - node --version
     - npm --version
     - npm install -g semantic-release@${SEMANTIC_RELEASE_VERSION} @semantic-release/changelog@${SEMANTIC_RELEASE_CHANGELOG_VERSION} @semantic-release/git@${SEMANTIC_RELEASE_GIT_VERSION} @semantic-release/gitlab@${SEMANTIC_RELEASE_GITLAB_VERSION} @semantic-release/exec@${SEMANTIC_RELEASE_EXEC_VERSION} conventional-changelog-conventionalcommits@${CONVENTIONAL_CHANGELOG_CONVENTIONALCOMMITS_VERSION}
