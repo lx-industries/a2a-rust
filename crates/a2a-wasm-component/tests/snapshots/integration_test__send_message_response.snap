@@ -1,0 +1,20 @@
+---
+source: crates/a2a-wasm-component/tests/integration_test.rs
+assertion_line: 34
+expression: result.unwrap()
+---
+{
+  "message": {
+    "context_id": null,
+    "message_id": "[MSG_ID]",
+    "parts": [
+      {
+        "text": "Hello World",
+        "type": "text"
+      }
+    ],
+    "role": "agent",
+    "task_id": null
+  },
+  "type": "message"
+}

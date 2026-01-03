@@ -115,9 +115,16 @@ impl WasmRunner {
     ///
     /// The response as a JSON value, or an error string.
     pub async fn send_message(&mut self, url: &str, message_text: &str) -> Result<Value, String> {
-        use exports::a2a::protocol::client::{
+        use a2a::protocol::types::{
             Message, MessageSendConfig, MessageSendParams, Part, Role, TextPart,
         };
+
+        // Generate a unique message ID (simple counter-based for tests)
+        static MESSAGE_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+        let message_id = format!(
+            "test-msg-{}",
+            MESSAGE_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        );
 
         // Build the message parameters
         let params = MessageSendParams {
@@ -126,7 +133,7 @@ impl WasmRunner {
                 parts: vec![Part::Text(TextPart {
                     text: message_text.to_string(),
                 })],
-                message_id: None,
+                message_id: Some(message_id),
                 task_id: None,
                 context_id: None,
             },
@@ -207,8 +214,8 @@ impl WasmRunner {
 
 // Helper functions to convert WIT types to JSON for snapshot testing
 
-fn send_response_to_json(response: &exports::a2a::protocol::client::SendResponse) -> Value {
-    use exports::a2a::protocol::client::SendResponse;
+fn send_response_to_json(response: &a2a::protocol::types::SendResponse) -> Value {
+    use a2a::protocol::types::SendResponse;
     match response {
         SendResponse::Task(task) => json!({
             "type": "task",
@@ -221,7 +228,7 @@ fn send_response_to_json(response: &exports::a2a::protocol::client::SendResponse
     }
 }
 
-fn task_to_json(task: &exports::a2a::protocol::client::Task) -> Value {
+fn task_to_json(task: &a2a::protocol::types::Task) -> Value {
     json!({
         "id": task.id,
         "context_id": task.context_id,
@@ -231,8 +238,8 @@ fn task_to_json(task: &exports::a2a::protocol::client::Task) -> Value {
     })
 }
 
-fn task_status_to_json(status: &exports::a2a::protocol::client::TaskStatus) -> Value {
-    use exports::a2a::protocol::client::TaskState;
+fn task_status_to_json(status: &a2a::protocol::types::TaskStatus) -> Value {
+    use a2a::protocol::types::TaskState;
     json!({
         "state": match status.state {
             TaskState::Submitted => "submitted",
@@ -250,8 +257,8 @@ fn task_status_to_json(status: &exports::a2a::protocol::client::TaskStatus) -> V
     })
 }
 
-fn message_to_json(msg: &exports::a2a::protocol::client::Message) -> Value {
-    use exports::a2a::protocol::client::Role;
+fn message_to_json(msg: &a2a::protocol::types::Message) -> Value {
+    use a2a::protocol::types::Role;
     json!({
         "role": match msg.role {
             Role::User => "user",
@@ -264,8 +271,8 @@ fn message_to_json(msg: &exports::a2a::protocol::client::Message) -> Value {
     })
 }
 
-fn part_to_json(part: &exports::a2a::protocol::client::Part) -> Value {
-    use exports::a2a::protocol::client::Part;
+fn part_to_json(part: &a2a::protocol::types::Part) -> Value {
+    use a2a::protocol::types::Part;
     match part {
         Part::Text(text_part) => json!({
             "type": "text",
@@ -288,7 +295,7 @@ fn part_to_json(part: &exports::a2a::protocol::client::Part) -> Value {
     }
 }
 
-fn artifact_to_json(artifact: &exports::a2a::protocol::client::Artifact) -> Value {
+fn artifact_to_json(artifact: &a2a::protocol::types::Artifact) -> Value {
     json!({
         "artifact_id": artifact.artifact_id,
         "name": artifact.name,
