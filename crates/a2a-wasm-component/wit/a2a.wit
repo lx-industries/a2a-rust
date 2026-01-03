@@ -1,62 +1,174 @@
 // crates/a2a-wasm-component/wit/a2a.wit
-package agent-compose:a2a@0.1.0;
+package a2a:protocol@0.2.0;
+
+// TODO: Add json-value variant for metadata support
+// variant json-value {
+//     null,
+//     bool(bool),
+//     number(f64),
+//     str(string),
+//     array(list<json-value>),
+//     object(list<tuple<string, json-value>>),
+// }
 
 interface types {
+    /// Message sender role
     enum role {
         user,
         agent,
     }
 
-    record message {
-        role: role,
-        content: string,
-        context-id: option<string>,
-    }
-
-    enum task-status {
+    /// Task lifecycle state (A2A TaskState)
+    enum task-state {
         submitted,
         working,
+        input-required,
         completed,
+        canceled,
         failed,
-        cancelled,
+        rejected,
+        auth-required,
+        unknown,
     }
 
+    /// Text content part
+    record text-part {
+        text: string,
+        // TODO: metadata: option<list<tuple<string, json-value>>>,
+    }
+
+    /// File content reference or inline data
+    record file-content {
+        name: option<string>,
+        mime-type: option<string>,
+        uri: option<string>,
+        bytes: option<list<u8>>,
+    }
+
+    /// File content part
+    record file-part {
+        file: file-content,
+        // TODO: metadata: option<list<tuple<string, json-value>>>,
+    }
+
+    /// Structured data part (JSON)
+    record data-part {
+        data: string,
+        mime-type: option<string>,
+        // TODO: metadata: option<list<tuple<string, json-value>>>,
+    }
+
+    /// Content part within a message or artifact
+    variant part {
+        text(text-part),
+        file(file-part),
+        data(data-part),
+    }
+
+    /// A2A protocol message
+    record message {
+        role: role,
+        parts: list<part>,
+        message-id: option<string>,
+        task-id: option<string>,
+        context-id: option<string>,
+        // TODO: reference-task-ids: option<list<string>>,
+        // TODO: extensions: option<list<string>>,
+        // TODO: metadata: option<list<tuple<string, json-value>>>,
+    }
+
+    /// Task output artifact
+    record artifact {
+        artifact-id: string,
+        name: option<string>,
+        description: option<string>,
+        parts: list<part>,
+        // TODO: extensions: option<list<string>>,
+        // TODO: metadata: option<list<tuple<string, json-value>>>,
+    }
+
+    /// Task status with state and optional details
+    record task-status {
+        state: task-state,
+        message: option<message>,
+        timestamp: option<string>,
+    }
+
+    /// A2A task
     record task {
         id: string,
+        context-id: string,
         status: task-status,
-        context-id: option<string>,
-        messages: list<message>,
-        artifacts: list<string>,
+        history: option<list<message>>,
+        artifacts: option<list<artifact>>,
+        // TODO: metadata: option<list<tuple<string, json-value>>>,
     }
 
+    /// Configuration for message/send
+    record message-send-config {
+        accepted-output-modes: option<list<string>>,
+        history-length: option<u32>,
+        blocking: option<bool>,
+        // TODO: push-notification-config
+    }
+
+    /// Parameters for message/send
+    record message-send-params {
+        message: message,
+        configuration: option<message-send-config>,
+        // TODO: metadata: option<list<tuple<string, json-value>>>,
+    }
+
+    /// Response from message/send
     variant send-response {
-        message(message),
         task(task),
+        message(message),
     }
 
-    record pending-item {
-        id: string,
-        from: string,
-        content: string,
-        context-id: option<string>,
-        task-id: option<string>,
+    /// JSON-RPC error
+    record error {
+        code: s32,
+        message: string,
+        // TODO: data: option<json-value>,
     }
 }
 
+/// Client interface for calling other A2A agents (outgoing requests)
 interface client {
-    use types.{message, task, task-status, send-response};
+    use types.{task, message-send-params, send-response, error};
 
-    send-message: func(to: string, content: string, context-id: option<string>) -> send-response;
-    get-task: func(task-id: string) -> option<task>;
-    list-tasks: func(context-id: option<string>, status: option<task-status>) -> list<task>;
-    cancel-task: func(task-id: string) -> option<task>;
+    /// Send a message to an A2A agent (JSON-RPC: message/send)
+    send-message: func(
+        agent-url: string,
+        params: message-send-params
+    ) -> result<send-response, error>;
+
+    /// Get a task by ID (JSON-RPC: tasks/get)
+    get-task: func(
+        agent-url: string,
+        id: string,
+        history-length: option<u32>
+    ) -> result<option<task>, error>;
+
+    /// Cancel a task (JSON-RPC: tasks/cancel)
+    cancel-task: func(
+        agent-url: string,
+        id: string
+    ) -> result<option<task>, error>;
 }
 
+/// Server interface for handling incoming A2A requests (as an agent)
 interface server {
-    use types.{pending-item};
+    use types.{task, message-send-params, send-response, error};
 
-    get-inbox: func(agent-name: string) -> list<pending-item>;
-    acknowledge: func(agent-name: string, item-id: string) -> bool;
+    /// Handle incoming message/send request
+    on-message: func(params: message-send-params) -> result<send-response, error>;
+
+    /// Handle incoming tasks/get request
+    on-get-task: func(id: string, history-length: option<u32>) -> result<option<task>, error>;
+
+    /// Handle incoming tasks/cancel request
+    on-cancel-task: func(id: string) -> result<option<task>, error>;
 }
 
 world a2a-component {
