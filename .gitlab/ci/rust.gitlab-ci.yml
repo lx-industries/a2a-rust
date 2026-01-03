@@ -1,0 +1,118 @@
+# Rust-specific CI configuration
+
+# File patterns that trigger Rust jobs
+.rust-changes: &rust-changes
+  - "Cargo.toml"
+  - "Cargo.lock"
+  - "crates/**/*"
+  - "tests/**/*"
+  - ".cargo/**/*"
+  - ".gitlab/ci/rust.gitlab-ci.yml"
+
+# Cargo registry cache (pull-only for dependencies)
+.cargo-registry-cache: &cargo-registry-cache
+  key: $CI_COMMIT_REF_SLUG
+  paths:
+    - ".cargo/.crates.toml"
+    - ".cargo/.crates2.json"
+    - ".cargo/bin/"
+    - ".cargo/registry/index/"
+    - ".cargo/registry/cache/"
+    - ".cargo/registry/src/"
+    - ".cargo/git/db/"
+  policy: pull
+
+# Base template for all Rust jobs
+.rust-template:
+  # TODO: Update with actual registry image after first build
+  image: rust:1.92.0@sha256:910b9dc6597a3ef16458dc1d20520714d3526ddb038749b8d87334798064d672
+  variables:
+    CARGO_HOME: ".cargo"
+    RUSTC_WRAPPER: sccache
+    GIT_FETCH_EXTRA_FLAGS: "+refs/heads/main:refs/remotes/origin/main"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes: *rust-changes
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      changes: *rust-changes
+    - if: "$CI_COMMIT_TAG"
+  before_script:
+    - rustc --version
+    - cargo --version
+    - sccache --version || true
+  cache:
+    - <<: *cargo-registry-cache
+  interruptible: true
+
+# Build jobs
+build:x86_64-unknown-linux-gnu:
+  extends: .rust-template
+  stage: build
+  script:
+    - cargo build --workspace --all-features --verbose
+    - sccache --show-stats || true
+
+build:wasm32-wasip2:
+  extends: .rust-template
+  # TODO: Update with actual registry image after first build
+  image: rust:1.92.0@sha256:910b9dc6597a3ef16458dc1d20520714d3526ddb038749b8d87334798064d672
+  stage: build
+  before_script:
+    - rustup target add wasm32-wasip2
+    - !reference [.rust-template, before_script]
+  script:
+    - cargo build -p a2a-transport-wasi -p a2a-wasm-component --target wasm32-wasip2 --verbose
+    - sccache --show-stats || true
+
+# Test jobs
+cargo-test:
+  extends: .rust-template
+  stage: test
+  script:
+    - cargo test --workspace --all-features --verbose
+    - sccache --show-stats || true
+  needs:
+    - build:x86_64-unknown-linux-gnu
+
+cargo-doc-test:
+  extends: .rust-template
+  stage: test
+  script:
+    - cargo test --workspace --doc --all-features
+    - sccache --show-stats || true
+  needs:
+    - build:x86_64-unknown-linux-gnu
+
+# Lint jobs
+cargo-clippy:
+  extends: .rust-template
+  stage: check
+  before_script:
+    - !reference [.rust-template, before_script]
+    - cargo clippy --version
+  script:
+    - cargo clippy --workspace --all-targets --all-features -- -D warnings
+    - sccache --show-stats || true
+
+cargo-fmt:
+  extends: .rust-template
+  stage: check
+  before_script:
+    - !reference [.rust-template, before_script]
+    - cargo fmt --version
+  script:
+    - cargo fmt --all -- --check
+
+# Docs job
+cargo-doc:
+  extends: .rust-template
+  stage: docs
+  script:
+    - cargo doc --workspace --all-features --no-deps
+    - sccache --show-stats || true
+  needs:
+    - build:x86_64-unknown-linux-gnu
+  artifacts:
+    paths:
+      - target/doc
+    expire_in: 1 week
