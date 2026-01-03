@@ -48,7 +48,9 @@ pub fn from_incoming_request(request: IncomingRequest) -> Result<HttpRequest, Wa
         Some(wasi::http::types::Scheme::Http) => "http",
         Some(wasi::http::types::Scheme::Https) | None => "https",
         Some(wasi::http::types::Scheme::Other(s)) => {
-            return Err(WasiError::InvalidRequest(format!("unsupported scheme: {s}")));
+            return Err(WasiError::InvalidRequest(format!(
+                "unsupported scheme: {s}"
+            )));
         }
     };
     let authority = request.authority().unwrap_or_default();
@@ -176,9 +178,7 @@ macro_rules! export_incoming_handler {
                         // Send error response
                         let error_response = ::a2a_transport::HttpResponse {
                             status: 500,
-                            headers: vec![
-                                ("content-type".into(), "text/plain".into()),
-                            ],
+                            headers: vec![("content-type".into(), "text/plain".into())],
                             body: ::bytes::Bytes::from(format!("Request parse error: {e}")),
                         };
                         let _ = $crate::server::send_response(error_response, response_out);

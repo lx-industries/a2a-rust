@@ -64,7 +64,8 @@ mod tests {
 
     #[test]
     fn test_deserialize_error_response() {
-        let json = r#"{"jsonrpc":"2.0","id":"1","error":{"code":-32001,"message":"Task not found"}}"#;
+        let json =
+            r#"{"jsonrpc":"2.0","id":"1","error":{"code":-32001,"message":"Task not found"}}"#;
         let resp: JsonRpcResponse<Value> = serde_json::from_str(json).unwrap();
         assert!(matches!(resp.result, JsonRpcResult::Error { .. }));
     }

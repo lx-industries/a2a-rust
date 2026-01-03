@@ -108,10 +108,13 @@ mod tests {
 
     #[test]
     fn test_http_request_with_header() {
-        let req = HttpRequest::get("https://example.com")
-            .with_header("Content-Type", "application/json");
+        let req =
+            HttpRequest::get("https://example.com").with_header("Content-Type", "application/json");
         assert_eq!(req.headers.len(), 1);
-        assert_eq!(req.headers[0], ("Content-Type".to_string(), "application/json".to_string()));
+        assert_eq!(
+            req.headers[0],
+            ("Content-Type".to_string(), "application/json".to_string())
+        );
     }
 
     #[test]

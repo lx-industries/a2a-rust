@@ -11,8 +11,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use wasi::http::outgoing_handler;
 use wasi::http::types::{
-    ErrorCode, Fields, IncomingBody, IncomingResponse,
-    OutgoingBody, OutgoingRequest, Scheme,
+    ErrorCode, Fields, IncomingBody, IncomingResponse, OutgoingBody, OutgoingRequest, Scheme,
 };
 
 /// WASI HTTP client using wasi:http/outgoing-handler.
@@ -44,9 +43,7 @@ fn to_wasi_method(method: &Method) -> wasi::http::types::Method {
 /// Convert wasi:http ErrorCode to WasiError.
 fn from_error_code(code: ErrorCode) -> WasiError {
     match code {
-        ErrorCode::DnsTimeout | ErrorCode::DnsError(_) => {
-            WasiError::DnsError(format!("{code:?}"))
-        }
+        ErrorCode::DnsTimeout | ErrorCode::DnsError(_) => WasiError::DnsError(format!("{code:?}")),
         ErrorCode::ConnectionTimeout => WasiError::ConnectionTimeout,
         ErrorCode::ConnectionRefused => WasiError::ConnectionRefused,
         ErrorCode::ConnectionTerminated => WasiError::ConnectionTerminated,
@@ -65,9 +62,7 @@ fn from_error_code(code: ErrorCode) -> WasiError {
         ErrorCode::HttpResponseTrailerSectionSize(_) => WasiError::HttpResponseTrailerSectionSize,
         ErrorCode::HttpRequestDenied => WasiError::HttpRequestDenied(String::new()),
         ErrorCode::HttpResponseTimeout => WasiError::HttpRequestTimeout,
-        ErrorCode::InternalError(msg) => {
-            WasiError::InternalError(msg.unwrap_or_default())
-        }
+        ErrorCode::InternalError(msg) => WasiError::InternalError(msg.unwrap_or_default()),
         _ => WasiError::InternalError(format!("{code:?}")),
     }
 }
@@ -217,8 +212,8 @@ impl HttpClient for WasiHttpClient {
                 .map_err(|e| WasiError::HttpRequestBodyError(format!("{e:?}")))?;
 
             // Send request
-            let future_response = outgoing_handler::handle(outgoing, None)
-                .map_err(from_error_code)?;
+            let future_response =
+                outgoing_handler::handle(outgoing, None).map_err(from_error_code)?;
 
             // Wait for response
             let pollable = future_response.subscribe();
@@ -239,10 +234,7 @@ impl HttpClient for WasiHttpClient {
         &self,
         request: HttpRequest,
     ) -> impl Future<
-        Output = Result<
-            impl Stream<Item = Result<Bytes, Self::Error>> + Send,
-            Self::Error,
-        >,
+        Output = Result<impl Stream<Item = Result<Bytes, Self::Error>> + Send, Self::Error>,
     > + Send {
         async move {
             // Build and send request
@@ -255,8 +247,8 @@ impl HttpClient for WasiHttpClient {
             OutgoingBody::finish(body, None)
                 .map_err(|e| WasiError::HttpRequestBodyError(format!("{e:?}")))?;
 
-            let future_response = outgoing_handler::handle(outgoing, None)
-                .map_err(from_error_code)?;
+            let future_response =
+                outgoing_handler::handle(outgoing, None).map_err(from_error_code)?;
 
             let pollable = future_response.subscribe();
             pollable.wait().await;

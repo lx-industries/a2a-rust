@@ -4,7 +4,7 @@
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use wasi::io::poll::{poll, Pollable};
+use wasi::io::poll::{Pollable, poll};
 
 /// A future that wraps a WASI `Pollable` and yields when it becomes ready.
 ///

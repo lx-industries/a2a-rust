@@ -35,11 +35,16 @@ impl<T: HttpClient> Client<T> {
 
     /// Discover an agent by fetching its agent card.
     pub async fn discover(&self) -> Result<serde_json::Value> {
-        let url = format!("{}/.well-known/agent.json", self.base_url.trim_end_matches('/'));
-        let request = HttpRequest::get(&url)
-            .with_header("Accept", "application/json");
+        let url = format!(
+            "{}/.well-known/agent.json",
+            self.base_url.trim_end_matches('/')
+        );
+        let request = HttpRequest::get(&url).with_header("Accept", "application/json");
 
-        let response = self.transport.request(request).await
+        let response = self
+            .transport
+            .request(request)
+            .await
             .map_err(|e| Error::Transport(e.to_string()))?;
 
         if response.status != 200 {
@@ -64,7 +69,10 @@ impl<T: HttpClient> Client<T> {
             .with_header("Content-Type", "application/json")
             .with_header("Accept", "application/json");
 
-        let response = self.transport.request(http_request).await
+        let response = self
+            .transport
+            .request(http_request)
+            .await
             .map_err(|e| Error::Transport(e.to_string()))?;
 
         let rpc_response: JsonRpcResponse<R> = serde_json::from_slice(&response.body)?;

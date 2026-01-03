@@ -34,10 +34,7 @@ pub trait TaskStore: Send + Sync {
     ) -> impl Future<Output = Result<Vec<serde_json::Value>, Self::Error>> + Send;
 
     /// Delete a task.
-    fn delete(
-        &self,
-        task_id: &str,
-    ) -> impl Future<Output = Result<(), Self::Error>> + Send;
+    fn delete(&self, task_id: &str) -> impl Future<Output = Result<(), Self::Error>> + Send;
 }
 
 /// In-memory task store.
@@ -79,7 +76,11 @@ impl TaskStore for InMemoryTaskStore {
                     return false;
                 }
                 if let Some(ref status) = filter.status
-                    && task.get("status").and_then(|v| v.get("state")).and_then(|v| v.as_str()) != Some(status)
+                    && task
+                        .get("status")
+                        .and_then(|v| v.get("state"))
+                        .and_then(|v| v.as_str())
+                        != Some(status)
                 {
                     return false;
                 }

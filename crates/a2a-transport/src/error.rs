@@ -4,10 +4,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("HTTP error: status {status}")]
-    Http {
-        status: u16,
-        body: Option<String>,
-    },
+    Http { status: u16, body: Option<String> },
 
     #[error("Connection error: {0}")]
     Connection(String),
