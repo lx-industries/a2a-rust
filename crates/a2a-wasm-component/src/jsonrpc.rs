@@ -1,11 +1,16 @@
 //! JSON-RPC 2.0 types for A2A protocol.
 
+// Allow unused constants - these are defined for completeness and may be used later
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 /// JSON-RPC 2.0 request.
 #[derive(Debug, Deserialize)]
 pub struct Request {
+    /// Protocol version, must be "2.0"
+    #[allow(dead_code)]
     pub jsonrpc: String,
     pub method: String,
     #[serde(default)]

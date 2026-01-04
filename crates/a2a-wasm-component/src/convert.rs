@@ -229,6 +229,151 @@ pub fn error_from_a2a(err: &a2a_types::JsonrpcError) -> Error {
     }
 }
 
+// ============================================================================
+// Server-side conversions (a2a-types -> WIT for params, WIT -> a2a-types for responses)
+// ============================================================================
+
+/// Convert a2a-types MessageSendParams to WIT MessageSendParams.
+///
+/// Used by the server to convert incoming JSON-RPC params to WIT types
+/// before calling the agent interface.
+pub fn message_send_params_to_wit(
+    params: &a2a_types::MessageSendParams,
+) -> Result<MessageSendParams, String> {
+    let configuration = params
+        .configuration
+        .as_ref()
+        .map(message_send_config_from_a2a);
+
+    Ok(MessageSendParams {
+        message: message_from_a2a(&params.message)?,
+        configuration,
+    })
+}
+
+/// Convert a2a-types MessageSendConfiguration to WIT MessageSendConfig.
+fn message_send_config_from_a2a(config: &a2a_types::MessageSendConfiguration) -> MessageSendConfig {
+    MessageSendConfig {
+        accepted_output_modes: if config.accepted_output_modes.is_empty() {
+            None
+        } else {
+            Some(config.accepted_output_modes.clone())
+        },
+        history_length: config.history_length.map(|v| v as u32),
+        blocking: config.blocking,
+    }
+}
+
+/// Convert WIT SendResponse to a2a-types SendMessageResponse.
+///
+/// Used by the server to convert agent interface responses back to
+/// a2a-types for JSON serialization.
+pub fn send_response_from_wit(response: &SendResponse) -> a2a_types::SendMessageResponse {
+    match response {
+        SendResponse::Task(task) => a2a_types::SendMessageResponse::Task(task_from_wit(task)),
+        SendResponse::Message(msg) => {
+            a2a_types::SendMessageResponse::Message(message_to_a2a_clone(msg))
+        }
+    }
+}
+
+/// Convert WIT Task to a2a-types Task.
+///
+/// Used by the server to convert agent interface responses back to
+/// a2a-types for JSON serialization.
+pub fn task_from_wit(task: &Task) -> a2a_types::Task {
+    let history = task
+        .history
+        .as_ref()
+        .map(|h| h.iter().map(message_to_a2a_clone).collect())
+        .unwrap_or_default();
+
+    let artifacts = task
+        .artifacts
+        .as_ref()
+        .map(|a| a.iter().map(artifact_to_a2a).collect())
+        .unwrap_or_default();
+
+    a2a_types::Task {
+        id: task.id.clone(),
+        context_id: task.context_id.clone(),
+        status: task_status_to_a2a(&task.status),
+        history,
+        artifacts,
+        kind: None,
+        metadata: Default::default(),
+    }
+}
+
+/// Convert WIT TaskStatus to a2a-types TaskStatus.
+fn task_status_to_a2a(status: &TaskStatus) -> a2a_types::TaskStatus {
+    let message = status.message.as_ref().map(message_to_a2a_clone);
+    // Parse RFC 3339 timestamp string to DateTime<Utc>
+    let timestamp = status.timestamp.as_ref().and_then(|ts| {
+        chrono::DateTime::parse_from_rfc3339(ts)
+            .ok()
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+    });
+
+    a2a_types::TaskStatus {
+        state: task_state_to_a2a(status.state),
+        message,
+        timestamp,
+    }
+}
+
+/// Convert WIT Message to a2a-types Message (clone-based, for response conversion).
+fn message_to_a2a_clone(msg: &Message) -> a2a_types::Message {
+    let parts: Vec<_> = msg
+        .parts
+        .iter()
+        .filter_map(|p| part_to_a2a_clone(p).ok())
+        .collect();
+
+    a2a_types::Message {
+        role: role_to_a2a(msg.role),
+        parts,
+        message_id: msg.message_id.clone(),
+        task_id: msg.task_id.clone(),
+        context_id: msg.context_id.clone(),
+        kind: None,
+        reference_task_ids: vec![],
+        extensions: vec![],
+        metadata: Default::default(),
+    }
+}
+
+/// Convert WIT Part to a2a-types Part (clone-based).
+fn part_to_a2a_clone(part: &Part) -> Result<a2a_types::Part, String> {
+    match part {
+        Part::Text(text_part) => Ok(a2a_types::Part::TextPart(a2a_types::TextPart {
+            kind: "text".to_string(),
+            text: text_part.text.clone(),
+            metadata: Default::default(),
+        })),
+        Part::File(_) => Err("FilePart not implemented".to_string()),
+        Part::Data(_) => Err("DataPart not implemented".to_string()),
+    }
+}
+
+/// Convert WIT Artifact to a2a-types Artifact.
+fn artifact_to_a2a(artifact: &Artifact) -> a2a_types::Artifact {
+    let parts: Vec<_> = artifact
+        .parts
+        .iter()
+        .filter_map(|p| part_to_a2a_clone(p).ok())
+        .collect();
+
+    a2a_types::Artifact {
+        artifact_id: artifact.artifact_id.clone(),
+        name: artifact.name.clone(),
+        description: artifact.description.clone(),
+        parts,
+        extensions: vec![],
+        metadata: Default::default(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
