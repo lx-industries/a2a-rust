@@ -1,6 +1,7 @@
 // crates/a2a-client/src/lib.rs
 //! A2A protocol client.
 
+pub mod binding;
 pub mod error;
 pub mod jsonrpc;
 pub mod sse;
