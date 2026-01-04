@@ -11,14 +11,14 @@ pub fn endpoint(base_url: &str, path: &str) -> String {
 
 /// POST /v1/message:send
 pub fn send_message_request(base_url: &str, body: Vec<u8>) -> HttpRequest {
-    HttpRequest::post(&endpoint(base_url, "/v1/message:send"), body)
+    HttpRequest::post(endpoint(base_url, "/v1/message:send"), body)
         .with_header("Content-Type", "application/json")
         .with_header("Accept", "application/json")
 }
 
 /// GET /v1/tasks/{id}
 pub fn get_task_request(base_url: &str, task_id: &TaskId) -> HttpRequest {
-    HttpRequest::get(&endpoint(base_url, &format!("/v1/tasks/{}", task_id.as_str())))
+    HttpRequest::get(endpoint(base_url, &format!("/v1/tasks/{}", task_id.as_str())))
         .with_header("Accept", "application/json")
 }
 
@@ -28,7 +28,7 @@ pub fn get_task_with_history_request(
     task_id: &TaskId,
     history_length: u32,
 ) -> HttpRequest {
-    HttpRequest::get(&endpoint(
+    HttpRequest::get(endpoint(
         base_url,
         &format!("/v1/tasks/{}?historyLength={}", task_id.as_str(), history_length),
     ))
@@ -38,7 +38,7 @@ pub fn get_task_with_history_request(
 /// POST /v1/tasks/{id}:cancel
 pub fn cancel_task_request(base_url: &str, task_id: &TaskId) -> HttpRequest {
     HttpRequest::post(
-        &endpoint(base_url, &format!("/v1/tasks/{}:cancel", task_id.as_str())),
+        endpoint(base_url, &format!("/v1/tasks/{}:cancel", task_id.as_str())),
         vec![],
     )
     .with_header("Accept", "application/json")
