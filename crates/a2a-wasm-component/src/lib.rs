@@ -1,47 +1,44 @@
+// crates/a2a-wasm-component/src/lib.rs
 //! A2A WASM component with a2a:protocol interface.
 //!
 //! This component exports the A2A client and server interfaces for use in
 //! WASM runtimes like Wassette. It allows WASM components to communicate
 //! with A2A agents using the wasi:http transport.
 //!
-//! # Architecture
-//!
-//! ```text
-//! ┌─────────────────────────────────────────────────────────┐
-//! │ WASM Host Runtime (e.g., Wassette)                      │
-//! │   • Handles HTTP protocol                               │
-//! │   • Provides agent interface implementation             │
-//! └─────────────────────────┬───────────────────────────────┘
-//!                           │
-//! ┌─────────────────────────▼───────────────────────────────┐
-//! │ a2a-wasm-component                                      │
-//! │   import agent { on-message, on-get-task, on-cancel }   │
-//! │   export server { on-message, on-get-task, on-cancel }  │
-//! │   export client { send-message, get-task, cancel-task } │
-//! └─────────────────────────────────────────────────────────┘
-//! ```
-//!
 //! # Interfaces
 //!
-//! - **agent** (import): Host provides actual agent logic
-//!   - `on-message`: Process incoming messages
-//!   - `on-get-task`: Retrieve task by ID
-//!   - `on-cancel-task`: Handle task cancellation
-//!
-//! - **server** (export): Handle incoming A2A requests (delegates to agent)
-//!   - `on-message`: Handle message/send
-//!   - `on-get-task`: Handle tasks/get
-//!   - `on-cancel-task`: Handle tasks/cancel
-//!
-//! - **client** (export): Call other A2A agents (outgoing requests)
+//! - **client**: Call other A2A agents (outgoing requests)
 //!   - `send-message`: Send a message to an agent
 //!   - `get-task`: Get task status by ID
 //!   - `cancel-task`: Cancel a running task
 //!
+//! - **server**: Handle incoming A2A requests (stub, not implemented)
+//!   - `on-message`: Handle message/send
+//!   - `on-get-task`: Handle tasks/get
+//!   - `on-cancel-task`: Handle tasks/cancel
+//!
 //! # Limitations
 //!
 //! - Only `TextPart` is supported; `FilePart` and `DataPart` return errors
+//! - Server interface returns "not implemented" errors
 //! - Metadata fields are not supported (deferred)
+//!
+//! # Example
+//!
+//! ```ignore
+//! // From a WASM runtime, call the exported client interface:
+//! let response = client::send_message(
+//!     "https://agent.example.com",
+//!     MessageSendParams {
+//!         message: Message {
+//!             role: Role::User,
+//!             parts: vec![Part::Text(TextPart { text: "Hello".into() })],
+//!             ..Default::default()
+//!         },
+//!         configuration: None,
+//!     },
+//! );
+//! ```
 
 mod client;
 mod convert;
