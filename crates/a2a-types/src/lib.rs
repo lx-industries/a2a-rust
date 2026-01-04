@@ -52,3 +52,40 @@ impl From<&str> for TaskId {
         Self(s.to_string())
     }
 }
+
+/// Protocol binding type for client/server communication.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Binding {
+    JsonRpc,
+    Rest,
+}
+
+impl std::fmt::Display for Binding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Binding::JsonRpc => write!(f, "JSONRPC"),
+            Binding::Rest => write!(f, "HTTP+JSON"),
+        }
+    }
+}
+
+/// Protocol binding as declared in Agent Card.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProtocolBinding {
+    #[serde(rename = "JSONRPC")]
+    JsonRpc,
+    #[serde(rename = "HTTP+JSON")]
+    Rest,
+    #[serde(rename = "GRPC")]
+    Grpc,
+}
+
+impl From<ProtocolBinding> for Option<Binding> {
+    fn from(pb: ProtocolBinding) -> Self {
+        match pb {
+            ProtocolBinding::JsonRpc => Some(Binding::JsonRpc),
+            ProtocolBinding::Rest => Some(Binding::Rest),
+            ProtocolBinding::Grpc => None, // Not supported
+        }
+    }
+}
