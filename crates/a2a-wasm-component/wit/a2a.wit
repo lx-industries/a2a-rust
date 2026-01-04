@@ -158,6 +158,8 @@ interface client {
 }
 
 /// Server interface for handling incoming A2A requests (as an agent)
+/// Note: This interface is kept for documentation but no longer exported.
+/// The component now exports wasi:http/incoming-handler instead.
 interface server {
     use types.{task, message-send-params, send-response, error};
 
@@ -171,7 +173,27 @@ interface server {
     on-cancel-task: func(id: string) -> result<option<task>, error>;
 }
 
+/// Agent interface imported from host - provides actual agent logic
+interface agent {
+    use types.{task, message-send-params, send-response, error};
+
+    /// Get agent card as JSON string
+    get-agent-card: func() -> result<string, error>;
+
+    /// Process incoming message (blocking)
+    on-message: func(params: message-send-params) -> result<send-response, error>;
+
+    /// Retrieve task by ID
+    on-get-task: func(id: string, history-length: option<u32>) -> result<option<task>, error>;
+
+    /// Handle cancellation
+    on-cancel-task: func(id: string) -> result<option<task>, error>;
+}
+
 world a2a-component {
+    import wasi:http/outgoing-handler@0.2.3;
+    import agent;
+
+    export wasi:http/incoming-handler@0.2.3;
     export client;
-    export server;
 }
