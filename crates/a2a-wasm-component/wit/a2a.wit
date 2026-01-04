@@ -171,7 +171,22 @@ interface server {
     on-cancel-task: func(id: string) -> result<option<task>, error>;
 }
 
+/// Agent interface imported from host - provides actual agent logic
+interface agent {
+    use types.{task, message-send-params, send-response, error};
+
+    /// Process incoming message (called by server.on-message)
+    on-message: func(params: message-send-params) -> result<send-response, error>;
+
+    /// Retrieve task (called by server.on-get-task)
+    on-get-task: func(id: string, history-length: option<u32>) -> result<option<task>, error>;
+
+    /// Handle cancellation (called by server.on-cancel-task)
+    on-cancel-task: func(id: string) -> result<option<task>, error>;
+}
+
 world a2a-component {
+    import agent;
     export client;
     export server;
 }
