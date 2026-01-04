@@ -1,44 +1,44 @@
 // crates/a2a-wasm-component/src/lib.rs
-//! A2A WASM component with a2a:protocol interface.
+//! A2A WASM component with HTTP server and client interfaces.
 //!
-//! This component exports the A2A client and server interfaces for use in
-//! WASM runtimes like Wassette. It allows WASM components to communicate
-//! with A2A agents using the wasi:http transport.
+//! This component exports:
+//! - `wasi:http/incoming-handler` - HTTP server for A2A requests
+//! - `a2a:protocol/client` - Client interface for calling other agents
 //!
-//! # Interfaces
+//! And imports:
+//! - `wasi:http/outgoing-handler` - For client HTTP requests
+//! - `a2a:protocol/agent` - Host-provided agent logic
 //!
-//! - **client**: Call other A2A agents (outgoing requests)
-//!   - `send-message`: Send a message to an agent
-//!   - `get-task`: Get task status by ID
-//!   - `cancel-task`: Cancel a running task
+//! # Architecture
 //!
-//! - **server**: Handle incoming A2A requests (stub, not implemented)
-//!   - `on-message`: Handle message/send
-//!   - `on-get-task`: Handle tasks/get
-//!   - `on-cancel-task`: Handle tasks/cancel
+//! ```text
+//! External A2A Client
+//!     │ HTTP
+//!     ▼
+//! ┌─────────────────────────────────────────────────────────┐
+//! │ WASM Host Runtime (e.g., Wassette)                      │
+//! │   • TCP/TLS termination                                 │
+//! │   • Provides agent interface implementation             │
+//! └─────────────────────────┬───────────────────────────────┘
+//!                           │
+//! ┌─────────────────────────▼───────────────────────────────┐
+//! │ a2a-wasm-component                                      │
+//! │   export wasi:http/incoming-handler                     │
+//! │   import agent { get-agent-card, on-message, ... }      │
+//! │   export client { send-message, get-task, cancel-task } │
+//! └─────────────────────────────────────────────────────────┘
+//! ```
+//!
+//! # HTTP Endpoints
+//!
+//! - `GET /.well-known/agent.json` - Agent card discovery
+//! - `POST /` - JSON-RPC (message/send, tasks/get, tasks/cancel)
 //!
 //! # Limitations
 //!
 //! - Only `TextPart` is supported; `FilePart` and `DataPart` return errors
-//! - Server interface returns "not implemented" errors
+//! - Streaming (message/stream) is not yet implemented
 //! - Metadata fields are not supported (deferred)
-//!
-//! # Example
-//!
-//! ```ignore
-//! // From a WASM runtime, call the exported client interface:
-//! let response = client::send_message(
-//!     "https://agent.example.com",
-//!     MessageSendParams {
-//!         message: Message {
-//!             role: Role::User,
-//!             parts: vec![Part::Text(TextPart { text: "Hello".into() })],
-//!             ..Default::default()
-//!         },
-//!         configuration: None,
-//!     },
-//! );
-//! ```
 
 mod client;
 mod convert;
