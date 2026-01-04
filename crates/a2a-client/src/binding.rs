@@ -1,7 +1,7 @@
 // crates/a2a-client/src/binding.rs
 //! Protocol binding selection and configuration.
 
-use a2a_types::{AgentCard, Binding, TransportProtocol};
+use a2a_types::{AgentCard, Binding, ProtocolBinding};
 
 /// Selected binding for client communication.
 #[derive(Debug, Clone, PartialEq)]
@@ -28,32 +28,43 @@ impl SelectedBinding {
 /// Default binding preference order.
 pub const DEFAULT_PREFERENCE: &[Binding] = &[Binding::JsonRpc, Binding::Rest];
 
-fn transport_to_binding(transport: &TransportProtocol) -> Option<Binding> {
-    match transport {
-        TransportProtocol::Jsonrpc => Some(Binding::JsonRpc),
-        TransportProtocol::HttpJson => Some(Binding::Rest),
-        TransportProtocol::Grpc => None, // Not supported
-    }
+/// Convert a protocol binding string to a Binding.
+fn protocol_binding_to_binding(protocol_binding: &str) -> Option<Binding> {
+    ProtocolBinding::from_str(protocol_binding).and_then(|pb| pb.into())
 }
 
 /// Extract all available interfaces from an agent card.
 ///
-/// The main `url` is treated as JSON-RPC unless `preferred_transport` says otherwise.
-/// Additional interfaces are added from `additional_interfaces`.
+/// Uses `supported_interfaces` which contains url and protocol_binding pairs.
+/// Falls back to deprecated fields (`url`, `preferred_transport`, `additional_interfaces`)
+/// for backwards compatibility.
+#[allow(deprecated)]
 pub fn extract_interfaces(card: &AgentCard) -> Vec<(String, Binding)> {
     let mut interfaces = Vec::new();
 
-    // Main URL - default to JSON-RPC, or use preferred_transport
-    let main_binding = card
-        .preferred_transport
-        .as_ref()
-        .and_then(transport_to_binding)
-        .unwrap_or(Binding::JsonRpc);
-    interfaces.push((card.url.clone(), main_binding));
+    // Prefer supported_interfaces if available
+    if !card.supported_interfaces.is_empty() {
+        for iface in &card.supported_interfaces {
+            if let Some(binding) = protocol_binding_to_binding(&iface.protocol_binding) {
+                interfaces.push((iface.url.clone(), binding));
+            }
+        }
+        return interfaces;
+    }
 
-    // Additional interfaces
+    // Fallback to deprecated fields for backwards compatibility
+    if let Some(url) = &card.url {
+        let main_binding = card
+            .preferred_transport
+            .as_ref()
+            .and_then(|t| protocol_binding_to_binding(t))
+            .unwrap_or(Binding::JsonRpc);
+        interfaces.push((url.clone(), main_binding));
+    }
+
+    // Additional interfaces (deprecated)
     for iface in &card.additional_interfaces {
-        if let Some(binding) = transport_to_binding(&iface.transport) {
+        if let Some(binding) = protocol_binding_to_binding(&iface.protocol_binding) {
             interfaces.push((iface.url.clone(), binding));
         }
     }
@@ -125,25 +136,38 @@ mod tests {
 
     #[test]
     fn test_extract_interfaces_from_agent_card() {
-        // Construct AgentCard via JSON to work around internal type visibility
+        // Construct AgentCard via JSON using new supported_interfaces format
         let json = r#"{
             "name": "test",
             "description": "test",
             "version": "1.0",
-            "url": "https://example.com/",
             "skills": [],
-            "capabilities": {},
-            "additionalInterfaces": [
+            "capabilities": {
+                "extensions": []
+            },
+            "supportedInterfaces": [
+                {
+                    "url": "https://example.com/",
+                    "protocolBinding": "JSONRPC",
+                    "tenant": ""
+                },
                 {
                     "url": "https://example.com/v1",
-                    "transport": "http+json"
+                    "protocolBinding": "HTTP+JSON",
+                    "tenant": ""
                 }
-            ]
+            ],
+            "additionalInterfaces": [],
+            "securitySchemes": {},
+            "security": [],
+            "defaultInputModes": [],
+            "defaultOutputModes": [],
+            "signatures": []
         }"#;
         let card: AgentCard = serde_json::from_str(json).unwrap();
 
         let interfaces = extract_interfaces(&card);
-        assert_eq!(interfaces.len(), 2); // main URL + additional
+        assert_eq!(interfaces.len(), 2);
         assert!(
             interfaces
                 .iter()

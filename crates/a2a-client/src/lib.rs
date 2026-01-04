@@ -93,7 +93,7 @@ impl<T: HttpClient> Client<T> {
     /// Uses the negotiated binding (JSON-RPC or REST).
     pub async fn send_message(
         &self,
-        params: a2a_types::MessageSendParams,
+        params: a2a_types::SendMessageRequest,
     ) -> Result<a2a_types::SendMessageResponse> {
         match &self.binding {
             SelectedBinding::JsonRpc { url } => self.send_message_jsonrpc(url, params).await,
@@ -104,7 +104,7 @@ impl<T: HttpClient> Client<T> {
     async fn send_message_jsonrpc(
         &self,
         url: &str,
-        params: a2a_types::MessageSendParams,
+        params: a2a_types::SendMessageRequest,
     ) -> Result<a2a_types::SendMessageResponse> {
         let request = jsonrpc::JsonRpcRequest::new(self.next_id(), "message/send", &params);
         let body = serde_json::to_vec(&request)?;
@@ -138,7 +138,7 @@ impl<T: HttpClient> Client<T> {
     async fn send_message_rest(
         &self,
         url: &str,
-        params: a2a_types::MessageSendParams,
+        params: a2a_types::SendMessageRequest,
     ) -> Result<a2a_types::SendMessageResponse> {
         let body = serde_json::to_vec(&params)?;
         let http_request = rest::send_message_request(url, body);
