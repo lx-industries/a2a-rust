@@ -42,17 +42,19 @@
 
 mod client;
 mod convert;
+mod jsonrpc;
 mod server;
 
 // Generate WIT bindings
 wit_bindgen::generate!({
     world: "a2a-component",
     path: "wit",
+    generate_all,
 });
 
-use exports::a2a::protocol::{client as client_exports, server as server_exports};
+use exports::a2a::protocol::client as client_exports;
 
-/// Component struct that implements both client and server interfaces.
+/// Component struct that implements client and HTTP handler interfaces.
 struct Component;
 
 export!(Component);
@@ -81,21 +83,5 @@ impl client_exports::Guest for Component {
     }
 }
 
-impl server_exports::Guest for Component {
-    fn on_message(
-        params: server_exports::MessageSendParams,
-    ) -> Result<server_exports::SendResponse, server_exports::Error> {
-        server::on_message(params)
-    }
-
-    fn on_get_task(
-        id: String,
-        history_length: Option<u32>,
-    ) -> Result<Option<server_exports::Task>, server_exports::Error> {
-        server::on_get_task(id, history_length)
-    }
-
-    fn on_cancel_task(id: String) -> Result<Option<server_exports::Task>, server_exports::Error> {
-        server::on_cancel_task(id)
-    }
-}
+// HTTP handler implementation is in server.rs
+// The wasi:http/incoming-handler export is implemented there.
