@@ -467,7 +467,10 @@ mod tests {
             let wit_err = error_from_a2a(&jsonrpc_err);
 
             assert_eq!(wit_err.code, code, "Error code should be preserved exactly");
-            assert_eq!(wit_err.message, message, "Error message should be preserved");
+            assert_eq!(
+                wit_err.message, message,
+                "Error message should be preserved"
+            );
         }
     }
 

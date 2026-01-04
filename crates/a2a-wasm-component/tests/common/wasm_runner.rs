@@ -3,7 +3,7 @@
 //! This module provides a test harness that loads the compiled A2A WASM component
 //! and calls its exported functions using wasmtime's component model.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView};

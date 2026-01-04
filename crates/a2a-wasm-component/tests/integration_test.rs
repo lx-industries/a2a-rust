@@ -261,9 +261,7 @@ async fn connection_refused_error() {
     let mut runner = WasmRunner::new().await;
 
     // Use a high port unlikely to be in use
-    let result = runner
-        .send_message("http://127.0.0.1:59999", "Test")
-        .await;
+    let result = runner.send_message("http://127.0.0.1:59999", "Test").await;
 
     assert!(result.is_err(), "Connection refused should fail");
     let error_msg = result.unwrap_err();
@@ -363,11 +361,7 @@ async fn response_message_role_agent() {
         let status_message = &response["task"]["status"]["message"];
         if !status_message.is_null() {
             let role = status_message["role"].as_str();
-            assert_eq!(
-                role,
-                Some("agent"),
-                "Status message role should be 'agent'"
-            );
+            assert_eq!(role, Some("agent"), "Status message role should be 'agent'");
         }
     }
 }
@@ -389,10 +383,7 @@ async fn response_part_is_text() {
         if let Some(parts_arr) = parts {
             assert!(!parts_arr.is_empty(), "Message should have parts");
             let first_part = &parts_arr[0];
-            assert_eq!(
-                first_part["type"], "text",
-                "First part should be text type"
-            );
+            assert_eq!(first_part["type"], "text", "First part should be text type");
         }
     }
 
@@ -404,10 +395,7 @@ async fn response_part_is_text() {
             if let Some(parts_arr) = parts {
                 assert!(!parts_arr.is_empty(), "Message should have parts");
                 let first_part = &parts_arr[0];
-                assert_eq!(
-                    first_part["type"], "text",
-                    "First part should be text type"
-                );
+                assert_eq!(first_part["type"], "text", "First part should be text type");
             }
         }
     }
@@ -453,12 +441,7 @@ async fn multiple_messages_sequential() {
         let result = runner
             .send_message(&server.url, &format!("Message {}", i))
             .await;
-        assert!(
-            result.is_ok(),
-            "Message {} should succeed: {:?}",
-            i,
-            result
-        );
+        assert!(result.is_ok(), "Message {} should succeed: {:?}", i, result);
     }
 }
 
