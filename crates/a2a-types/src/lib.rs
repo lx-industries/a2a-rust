@@ -89,3 +89,13 @@ impl From<ProtocolBinding> for Option<Binding> {
         }
     }
 }
+
+/// Interface declaration in Agent Card.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentInterface {
+    pub protocol_binding: ProtocolBinding,
+    pub url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tenant: Option<String>,
+}
