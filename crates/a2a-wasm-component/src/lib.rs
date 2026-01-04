@@ -9,30 +9,20 @@
 //! - `wasi:http/outgoing-handler` - For client HTTP requests
 //! - `a2a:protocol/agent` - Host-provided agent logic
 //!
-//! # Architecture
-//!
-//! ```text
-//! External A2A Client
-//!     │ HTTP
-//!     ▼
-//! ┌─────────────────────────────────────────────────────────┐
-//! │ WASM Host Runtime (e.g., Wassette)                      │
-//! │   • TCP/TLS termination                                 │
-//! │   • Provides agent interface implementation             │
-//! └─────────────────────────┬───────────────────────────────┘
-//!                           │
-//! ┌─────────────────────────▼───────────────────────────────┐
-//! │ a2a-wasm-component                                      │
-//! │   export wasi:http/incoming-handler                     │
-//! │   import agent { get-agent-card, on-message, ... }      │
-//! │   export client { send-message, get-task, cancel-task } │
-//! └─────────────────────────────────────────────────────────┘
-//! ```
-//!
 //! # HTTP Endpoints
 //!
-//! - `GET /.well-known/agent.json` - Agent card discovery
+//! ## Discovery
+//! - `GET /.well-known/agent-card.json` - Agent card discovery
+//!
+//! ## JSON-RPC Binding
 //! - `POST /` - JSON-RPC (message/send, tasks/get, tasks/cancel)
+//!
+//! ## REST Binding (HTTP+JSON)
+//! - `POST /v1/message:send` - Send a message
+//! - `GET /v1/tasks/{id}` - Get task by ID
+//! - `GET /v1/tasks/{id}?historyLength=N` - Get task with history
+//! - `POST /v1/tasks/{id}:cancel` - Cancel a task
+//! - `GET /v1/agentCard` - Extended agent card (authenticated)
 //!
 //! # Limitations
 //!
