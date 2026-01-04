@@ -163,4 +163,196 @@ impl<T: HttpClient> Client<T> {
         let result: a2a_types::SendMessageResponse = serde_json::from_slice(&response.body)?;
         Ok(result)
     }
+
+    /// Get a task by ID.
+    ///
+    /// Uses the negotiated binding (JSON-RPC or REST).
+    pub async fn get_task(
+        &self,
+        task_id: &a2a_types::TaskId,
+        history_length: Option<u32>,
+    ) -> Result<Option<a2a_types::Task>> {
+        match &self.binding {
+            SelectedBinding::JsonRpc { url } => {
+                self.get_task_jsonrpc(url, task_id, history_length).await
+            }
+            SelectedBinding::Rest { url } => self.get_task_rest(url, task_id, history_length).await,
+        }
+    }
+
+    async fn get_task_jsonrpc(
+        &self,
+        url: &str,
+        task_id: &a2a_types::TaskId,
+        history_length: Option<u32>,
+    ) -> Result<Option<a2a_types::Task>> {
+        #[derive(serde::Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Params<'a> {
+            id: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            history_length: Option<u32>,
+        }
+
+        let request = jsonrpc::JsonRpcRequest::new(
+            self.next_id(),
+            "tasks/get",
+            Params {
+                id: task_id.as_str(),
+                history_length,
+            },
+        );
+        let body = serde_json::to_vec(&request)?;
+
+        let http_request = HttpRequest::post(url, body)
+            .with_header("Content-Type", "application/json")
+            .with_header("Accept", "application/json");
+
+        let response = self
+            .transport
+            .request(http_request)
+            .await
+            .map_err(|e| Error::Transport(e.to_string()))?;
+
+        let rpc_response: jsonrpc::JsonRpcResponse<Option<a2a_types::Task>> =
+            serde_json::from_slice(&response.body)?;
+
+        match rpc_response.result {
+            jsonrpc::JsonRpcResult::Success { result } => Ok(result),
+            jsonrpc::JsonRpcResult::Error { error } => Err(Error::Agent {
+                message: error.message.clone(),
+                source: ProtocolError::JsonRpc {
+                    code: JsonRpcErrorCode::from_code(error.code),
+                    message: error.message,
+                    data: error.data,
+                },
+            }),
+        }
+    }
+
+    async fn get_task_rest(
+        &self,
+        url: &str,
+        task_id: &a2a_types::TaskId,
+        history_length: Option<u32>,
+    ) -> Result<Option<a2a_types::Task>> {
+        let http_request = match history_length {
+            Some(len) => rest::get_task_with_history_request(url, task_id, len),
+            None => rest::get_task_request(url, task_id),
+        };
+
+        let response = self
+            .transport
+            .request(http_request)
+            .await
+            .map_err(|e| Error::Transport(e.to_string()))?;
+
+        if response.status == 404 {
+            return Ok(None);
+        }
+
+        if response.status != 200 {
+            let body: Option<serde_json::Value> = serde_json::from_slice(&response.body).ok();
+            return Err(Error::Agent {
+                message: format!("REST error {}", response.status),
+                source: ProtocolError::Rest {
+                    status: response.status,
+                    body,
+                },
+            });
+        }
+
+        let task: a2a_types::Task = serde_json::from_slice(&response.body)?;
+        Ok(Some(task))
+    }
+
+    /// Cancel a task by ID.
+    ///
+    /// Uses the negotiated binding (JSON-RPC or REST).
+    pub async fn cancel_task(
+        &self,
+        task_id: &a2a_types::TaskId,
+    ) -> Result<Option<a2a_types::Task>> {
+        match &self.binding {
+            SelectedBinding::JsonRpc { url } => self.cancel_task_jsonrpc(url, task_id).await,
+            SelectedBinding::Rest { url } => self.cancel_task_rest(url, task_id).await,
+        }
+    }
+
+    async fn cancel_task_jsonrpc(
+        &self,
+        url: &str,
+        task_id: &a2a_types::TaskId,
+    ) -> Result<Option<a2a_types::Task>> {
+        #[derive(serde::Serialize)]
+        struct Params<'a> {
+            id: &'a str,
+        }
+
+        let request = jsonrpc::JsonRpcRequest::new(
+            self.next_id(),
+            "tasks/cancel",
+            Params {
+                id: task_id.as_str(),
+            },
+        );
+        let body = serde_json::to_vec(&request)?;
+
+        let http_request = HttpRequest::post(url, body)
+            .with_header("Content-Type", "application/json")
+            .with_header("Accept", "application/json");
+
+        let response = self
+            .transport
+            .request(http_request)
+            .await
+            .map_err(|e| Error::Transport(e.to_string()))?;
+
+        let rpc_response: jsonrpc::JsonRpcResponse<Option<a2a_types::Task>> =
+            serde_json::from_slice(&response.body)?;
+
+        match rpc_response.result {
+            jsonrpc::JsonRpcResult::Success { result } => Ok(result),
+            jsonrpc::JsonRpcResult::Error { error } => Err(Error::Agent {
+                message: error.message.clone(),
+                source: ProtocolError::JsonRpc {
+                    code: JsonRpcErrorCode::from_code(error.code),
+                    message: error.message,
+                    data: error.data,
+                },
+            }),
+        }
+    }
+
+    async fn cancel_task_rest(
+        &self,
+        url: &str,
+        task_id: &a2a_types::TaskId,
+    ) -> Result<Option<a2a_types::Task>> {
+        let http_request = rest::cancel_task_request(url, task_id);
+
+        let response = self
+            .transport
+            .request(http_request)
+            .await
+            .map_err(|e| Error::Transport(e.to_string()))?;
+
+        if response.status == 404 {
+            return Ok(None);
+        }
+
+        if response.status != 200 {
+            let body: Option<serde_json::Value> = serde_json::from_slice(&response.body).ok();
+            return Err(Error::Agent {
+                message: format!("REST error {}", response.status),
+                source: ProtocolError::Rest {
+                    status: response.status,
+                    body,
+                },
+            });
+        }
+
+        let task: a2a_types::Task = serde_json::from_slice(&response.body)?;
+        Ok(Some(task))
+    }
 }
