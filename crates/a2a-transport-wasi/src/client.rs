@@ -147,9 +147,12 @@ fn read_body(body: IncomingBody) -> Result<Vec<u8>, WasiError> {
 
     let mut data = Vec::new();
     loop {
-        match stream.read(4096) {
+        // Use blocking_read to wait for data. Non-blocking read() returns empty
+        // when no data is immediately available, which we'd wrongly interpret as EOF.
+        match stream.blocking_read(4096) {
             Ok(chunk) => {
                 if chunk.is_empty() {
+                    // blocking_read returns empty only when stream is truly done
                     break;
                 }
                 data.extend_from_slice(&chunk);

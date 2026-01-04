@@ -17,7 +17,6 @@ use insta::assert_json_snapshot;
 
 /// Test that sending a text message returns a response.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn send_message_text_returns_response() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -40,7 +39,6 @@ async fn send_message_text_returns_response() {
 
 /// Test that sending a message with blocking config works.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn send_message_with_blocking_config() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -69,7 +67,6 @@ async fn send_message_with_blocking_config() {
 /// Note: The helloworld server returns messages, not tasks, so this test
 /// may need adjustment based on actual server behavior.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn get_task_existing() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -118,7 +115,6 @@ async fn get_task_existing() {
 
 /// Test retrieving a task with history_length parameter.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn get_task_with_history_length() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -153,7 +149,6 @@ async fn get_task_with_history_length() {
 
 /// Test that canceling a non-cancelable task returns an error.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn cancel_task_not_cancelable() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -190,7 +185,6 @@ async fn cancel_task_not_cancelable() {
 
 /// Test that getting a non-existent task returns None or error.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn get_task_not_found() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -217,7 +211,6 @@ async fn get_task_not_found() {
 
 /// Test that canceling a non-existent task returns appropriate error/None.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn cancel_task_not_found() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -285,7 +278,6 @@ async fn connection_refused_error() {
 
 /// Test that the response has the expected structure.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn response_has_valid_structure() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -326,7 +318,6 @@ async fn response_has_valid_structure() {
 
 /// Test that the response status is correct (for task responses).
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn response_task_status_correct() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -352,7 +343,6 @@ async fn response_task_status_correct() {
 
 /// Test that the response message role is agent.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn response_message_role_agent() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -384,7 +374,6 @@ async fn response_message_role_agent() {
 
 /// Test that the response part is of type text.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn response_part_is_text() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -426,7 +415,6 @@ async fn response_part_is_text() {
 
 /// Test that the response text content is "Hello World".
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn response_text_content_hello_world() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -456,7 +444,6 @@ async fn response_text_content_hello_world() {
 
 /// Test that multiple sequential messages work correctly.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn multiple_messages_sequential() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
@@ -477,7 +464,6 @@ async fn multiple_messages_sequential() {
 
 /// Test that response message parts array contains at least one element.
 #[tokio::test]
-#[ignore = "wasmtime-wasi-http response body issue - see integration test README"]
 async fn response_parts_not_empty() {
     let server = TestServer::start();
     let mut runner = WasmRunner::new().await;
