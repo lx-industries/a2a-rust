@@ -130,11 +130,12 @@ fn handle_jsonrpc(body: &[u8]) -> Result<(u16, &'static str, Vec<u8>), (u16, Str
 fn handle_message_send(request: &Request) -> Response {
     use crate::a2a::protocol::agent;
 
-    let params: a2a_types::MessageSendParams = match serde_json::from_value(request.params.clone())
-    {
-        Ok(p) => p,
-        Err(e) => return Response::invalid_params(request.id.clone(), e.to_string()),
-    };
+    // In prost-generated types, MessageSendParams is now SendMessageRequest
+    let params: a2a_types::SendMessageRequest =
+        match serde_json::from_value(request.params.clone()) {
+            Ok(p) => p,
+            Err(e) => return Response::invalid_params(request.id.clone(), e.to_string()),
+        };
 
     let wit_params = match convert::message_send_params_to_wit(&params) {
         Ok(p) => p,

@@ -86,7 +86,8 @@ fn handle_send_message(
 
     let body = read_request_body(request)?;
 
-    let params: a2a_types::MessageSendParams =
+    // In prost-generated types, MessageSendParams is now SendMessageRequest
+    let params: a2a_types::SendMessageRequest =
         serde_json::from_slice(&body).map_err(|e| (400, format!("Invalid JSON: {e}")))?;
 
     let wit_params = convert::message_send_params_to_wit(&params)

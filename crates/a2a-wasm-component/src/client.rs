@@ -106,11 +106,11 @@ pub fn get_task(
     id: String,
     history_length: Option<u32>,
 ) -> Result<Option<Task>, Error> {
-    // Create the query params
-    let params = a2a_types::TaskQueryParams {
-        id,
-        history_length: history_length.map(|v| v as u64),
-        metadata: Default::default(),
+    // Create the query params (now uses GetTaskRequest)
+    let params = a2a_types::GetTaskRequest {
+        tenant: String::new(),
+        name: id,
+        history_length: history_length.map(|v| v as i32),
     };
 
     // Create HTTP client and A2A client (discovery is async)
@@ -149,10 +149,10 @@ pub fn get_task(
 ///
 /// Returns `Ok(None)` if the task is not found (error code -32001).
 pub fn cancel_task(agent_url: String, id: String) -> Result<Option<Task>, Error> {
-    // Create the cancel params
-    let params = a2a_types::TaskIdParams {
-        id,
-        metadata: Default::default(),
+    // Create the cancel params (now uses CancelTaskRequest)
+    let params = a2a_types::CancelTaskRequest {
+        tenant: String::new(),
+        name: id,
     };
 
     // Create HTTP client and A2A client (discovery is async)

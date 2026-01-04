@@ -18,49 +18,50 @@ use crate::exports::a2a::protocol::client::{Error, MessageSendParams, SendRespon
 #[cfg(test)]
 use crate::a2a::protocol::types::{DataPart, FileContent, FilePart};
 
-/// Convert WIT Role to a2a-types Role.
-pub fn role_to_a2a(role: Role) -> a2a_types::Role {
+/// Convert WIT Role to a2a-types Role (as i32 for prost enum).
+pub fn role_to_a2a(role: Role) -> i32 {
     match role {
-        Role::User => a2a_types::Role::User,
-        Role::Agent => a2a_types::Role::Agent,
+        Role::User => a2a_types::Role::User as i32,
+        Role::Agent => a2a_types::Role::Agent as i32,
     }
 }
 
-/// Convert a2a-types Role to WIT Role.
-pub fn role_from_a2a(role: &a2a_types::Role) -> Role {
-    match role {
-        a2a_types::Role::User => Role::User,
-        a2a_types::Role::Agent => Role::Agent,
+/// Convert a2a-types Role (i32) to WIT Role.
+pub fn role_from_a2a(role: i32) -> Role {
+    match a2a_types::Role::try_from(role) {
+        Ok(a2a_types::Role::User) => Role::User,
+        Ok(a2a_types::Role::Agent) => Role::Agent,
+        _ => Role::User, // Default to User for unknown/unspecified
     }
 }
 
-/// Convert WIT TaskState to a2a-types TaskState.
-pub fn task_state_to_a2a(state: TaskState) -> a2a_types::TaskState {
+/// Convert WIT TaskState to a2a-types TaskState (as i32 for prost enum).
+pub fn task_state_to_a2a(state: TaskState) -> i32 {
     match state {
-        TaskState::Submitted => a2a_types::TaskState::Submitted,
-        TaskState::Working => a2a_types::TaskState::Working,
-        TaskState::InputRequired => a2a_types::TaskState::InputRequired,
-        TaskState::Completed => a2a_types::TaskState::Completed,
-        TaskState::Canceled => a2a_types::TaskState::Canceled,
-        TaskState::Failed => a2a_types::TaskState::Failed,
-        TaskState::Rejected => a2a_types::TaskState::Rejected,
-        TaskState::AuthRequired => a2a_types::TaskState::AuthRequired,
-        TaskState::Unknown => a2a_types::TaskState::Unknown,
+        TaskState::Submitted => a2a_types::TaskState::Submitted as i32,
+        TaskState::Working => a2a_types::TaskState::Working as i32,
+        TaskState::InputRequired => a2a_types::TaskState::InputRequired as i32,
+        TaskState::Completed => a2a_types::TaskState::Completed as i32,
+        TaskState::Canceled => a2a_types::TaskState::Cancelled as i32,
+        TaskState::Failed => a2a_types::TaskState::Failed as i32,
+        TaskState::Rejected => a2a_types::TaskState::Rejected as i32,
+        TaskState::AuthRequired => a2a_types::TaskState::AuthRequired as i32,
+        TaskState::Unknown => a2a_types::TaskState::Unspecified as i32,
     }
 }
 
-/// Convert a2a-types TaskState to WIT TaskState.
-pub fn task_state_from_a2a(state: &a2a_types::TaskState) -> TaskState {
-    match state {
-        a2a_types::TaskState::Submitted => TaskState::Submitted,
-        a2a_types::TaskState::Working => TaskState::Working,
-        a2a_types::TaskState::InputRequired => TaskState::InputRequired,
-        a2a_types::TaskState::Completed => TaskState::Completed,
-        a2a_types::TaskState::Canceled => TaskState::Canceled,
-        a2a_types::TaskState::Failed => TaskState::Failed,
-        a2a_types::TaskState::Rejected => TaskState::Rejected,
-        a2a_types::TaskState::AuthRequired => TaskState::AuthRequired,
-        a2a_types::TaskState::Unknown => TaskState::Unknown,
+/// Convert a2a-types TaskState (i32) to WIT TaskState.
+pub fn task_state_from_a2a(state: i32) -> TaskState {
+    match a2a_types::TaskState::try_from(state) {
+        Ok(a2a_types::TaskState::Submitted) => TaskState::Submitted,
+        Ok(a2a_types::TaskState::Working) => TaskState::Working,
+        Ok(a2a_types::TaskState::InputRequired) => TaskState::InputRequired,
+        Ok(a2a_types::TaskState::Completed) => TaskState::Completed,
+        Ok(a2a_types::TaskState::Cancelled) => TaskState::Canceled,
+        Ok(a2a_types::TaskState::Failed) => TaskState::Failed,
+        Ok(a2a_types::TaskState::Rejected) => TaskState::Rejected,
+        Ok(a2a_types::TaskState::AuthRequired) => TaskState::AuthRequired,
+        _ => TaskState::Unknown, // Unspecified or unknown maps to Unknown
     }
 }
 
@@ -69,11 +70,10 @@ pub fn task_state_from_a2a(state: &a2a_types::TaskState) -> TaskState {
 /// Note: Only TextPart is fully implemented. FilePart and DataPart return errors.
 pub fn part_to_a2a(part: Part) -> Result<a2a_types::Part, String> {
     match part {
-        Part::Text(text_part) => Ok(a2a_types::Part::TextPart(a2a_types::TextPart {
-            kind: "text".to_string(),
-            text: text_part.text,
-            metadata: Default::default(),
-        })),
+        Part::Text(text_part) => Ok(a2a_types::Part {
+            part: Some(a2a_types::part::Part::Text(text_part.text)),
+            metadata: None,
+        }),
         Part::File(_) => Err("FilePart not implemented".to_string()),
         Part::Data(_) => Err("DataPart not implemented".to_string()),
     }
@@ -83,12 +83,13 @@ pub fn part_to_a2a(part: Part) -> Result<a2a_types::Part, String> {
 ///
 /// Note: Only TextPart is fully implemented. FilePart and DataPart return errors.
 pub fn part_from_a2a(part: &a2a_types::Part) -> Result<Part, String> {
-    match part {
-        a2a_types::Part::TextPart(text_part) => Ok(Part::Text(TextPart {
-            text: text_part.text.clone(),
+    match &part.part {
+        Some(a2a_types::part::Part::Text(text)) => Ok(Part::Text(TextPart {
+            text: text.clone(),
         })),
-        a2a_types::Part::FilePart(_) => Err("FilePart not implemented".to_string()),
-        a2a_types::Part::DataPart(_) => Err("DataPart not implemented".to_string()),
+        Some(a2a_types::part::Part::File(_)) => Err("FilePart not implemented".to_string()),
+        Some(a2a_types::part::Part::Data(_)) => Err("DataPart not implemented".to_string()),
+        None => Err("Part has no content".to_string()),
     }
 }
 
@@ -99,13 +100,13 @@ pub fn message_to_a2a(msg: Message) -> Result<a2a_types::Message, String> {
     Ok(a2a_types::Message {
         role: role_to_a2a(msg.role),
         parts: parts?,
-        message_id: msg.message_id,
-        task_id: msg.task_id,
-        context_id: msg.context_id,
-        kind: None,
+        // In prost-generated types, these are String not Option<String>
+        message_id: msg.message_id.unwrap_or_default(),
+        task_id: msg.task_id.unwrap_or_default(),
+        context_id: msg.context_id.unwrap_or_default(),
         reference_task_ids: vec![],
         extensions: vec![],
-        metadata: Default::default(),
+        metadata: None,
     })
 }
 
@@ -114,11 +115,24 @@ pub fn message_from_a2a(msg: &a2a_types::Message) -> Result<Message, String> {
     let parts: Result<Vec<_>, _> = msg.parts.iter().map(part_from_a2a).collect();
 
     Ok(Message {
-        role: role_from_a2a(&msg.role),
+        role: role_from_a2a(msg.role),
         parts: parts?,
-        message_id: msg.message_id.clone(),
-        task_id: msg.task_id.clone(),
-        context_id: msg.context_id.clone(),
+        // Convert from String to Option<String> for WIT
+        message_id: if msg.message_id.is_empty() {
+            None
+        } else {
+            Some(msg.message_id.clone())
+        },
+        task_id: if msg.task_id.is_empty() {
+            None
+        } else {
+            Some(msg.task_id.clone())
+        },
+        context_id: if msg.context_id.is_empty() {
+            None
+        } else {
+            Some(msg.context_id.clone())
+        },
     })
 }
 
@@ -128,8 +142,17 @@ pub fn artifact_from_a2a(artifact: &a2a_types::Artifact) -> Result<Artifact, Str
 
     Ok(Artifact {
         artifact_id: artifact.artifact_id.clone(),
-        name: artifact.name.clone(),
-        description: artifact.description.clone(),
+        // In prost-generated types, name and description are String, convert to Option for WIT
+        name: if artifact.name.is_empty() {
+            None
+        } else {
+            Some(artifact.name.clone())
+        },
+        description: if artifact.description.is_empty() {
+            None
+        } else {
+            Some(artifact.description.clone())
+        },
         parts: parts?,
     })
 }
@@ -142,10 +165,20 @@ pub fn task_status_from_a2a(status: &a2a_types::TaskStatus) -> Result<TaskStatus
     };
 
     Ok(TaskStatus {
-        state: task_state_from_a2a(&status.state),
+        state: task_state_from_a2a(status.state),
         message,
-        // Convert DateTime<Utc> to RFC 3339 string
-        timestamp: status.timestamp.map(|dt| dt.to_rfc3339()),
+        // Convert prost_types::Timestamp to RFC 3339 string
+        timestamp: status.timestamp.as_ref().map(|ts| {
+            // Convert to seconds and nanos to RFC3339
+            let secs = ts.seconds;
+            let nanos = ts.nanos as u32;
+            if let Some(dt) = chrono::DateTime::from_timestamp(secs, nanos) {
+                dt.to_rfc3339()
+            } else {
+                // Fallback for invalid timestamps
+                String::new()
+            }
+        }),
     })
 }
 
@@ -167,37 +200,45 @@ pub fn task_from_a2a(task: &a2a_types::Task) -> Result<Task, String> {
         Some(converted?)
     };
 
+    // In prost-generated types, status is Option<TaskStatus>
+    let status = task
+        .status
+        .as_ref()
+        .ok_or_else(|| "Task has no status".to_string())?;
+
     Ok(Task {
         id: task.id.clone(),
         context_id: task.context_id.clone(),
-        status: task_status_from_a2a(&task.status)?,
+        status: task_status_from_a2a(status)?,
         history,
         artifacts,
     })
 }
 
-/// Convert WIT MessageSendConfig to a2a-types MessageSendConfiguration.
+/// Convert WIT MessageSendConfig to a2a-types SendMessageConfiguration.
 pub fn message_send_config_to_a2a(
     config: MessageSendConfig,
-) -> a2a_types::MessageSendConfiguration {
-    a2a_types::MessageSendConfiguration {
+) -> a2a_types::SendMessageConfiguration {
+    a2a_types::SendMessageConfiguration {
         accepted_output_modes: config.accepted_output_modes.unwrap_or_default(),
-        history_length: config.history_length.map(|v| v as u64),
-        blocking: config.blocking,
+        history_length: config.history_length.map(|v| v as i32),
+        // In prost-generated types, blocking is bool not Option<bool>
+        blocking: config.blocking.unwrap_or(false),
         push_notification_config: None,
     }
 }
 
-/// Convert WIT MessageSendParams to a2a-types MessageSendParams.
+/// Convert WIT MessageSendParams to a2a-types SendMessageRequest.
 pub fn message_send_params_to_a2a(
     params: MessageSendParams,
-) -> Result<a2a_types::MessageSendParams, String> {
+) -> Result<a2a_types::SendMessageRequest, String> {
     let configuration = params.configuration.map(message_send_config_to_a2a);
 
-    Ok(a2a_types::MessageSendParams {
-        message: message_to_a2a(params.message)?,
+    Ok(a2a_types::SendMessageRequest {
+        tenant: String::new(),
+        request: Some(message_to_a2a(params.message)?),
         configuration,
-        metadata: Default::default(),
+        metadata: None,
     })
 }
 
@@ -205,11 +246,15 @@ pub fn message_send_params_to_a2a(
 pub fn send_response_from_a2a(
     response: &a2a_types::SendMessageResponse,
 ) -> Result<SendResponse, String> {
-    match response {
-        a2a_types::SendMessageResponse::Task(task) => Ok(SendResponse::Task(task_from_a2a(task)?)),
-        a2a_types::SendMessageResponse::Message(msg) => {
+    // In prost-generated types, SendMessageResponse has a payload oneof field
+    match &response.payload {
+        Some(a2a_types::send_message_response::Payload::Task(task)) => {
+            Ok(SendResponse::Task(task_from_a2a(task)?))
+        }
+        Some(a2a_types::send_message_response::Payload::Msg(msg)) => {
             Ok(SendResponse::Message(message_from_a2a(msg)?))
         }
+        None => Err("SendMessageResponse has no payload".to_string()),
     }
 }
 
@@ -221,38 +266,41 @@ pub fn error_from_string(msg: String) -> Error {
     }
 }
 
-/// Convert a2a-types JsonrpcError to WIT Error.
-pub fn error_from_a2a(err: &a2a_types::JsonrpcError) -> Error {
-    Error {
-        code: err.code as i32,
-        message: err.message.clone(),
-    }
-}
+// Note: JsonrpcError type no longer exists in prost-generated types.
+// Error handling is now done directly in client.rs through a2a_client::Error.
 
 // ============================================================================
 // Server-side conversions (a2a-types -> WIT for params, WIT -> a2a-types for responses)
 // ============================================================================
 
-/// Convert a2a-types MessageSendParams to WIT MessageSendParams.
+/// Convert a2a-types SendMessageRequest to WIT MessageSendParams.
 ///
 /// Used by the server to convert incoming JSON-RPC params to WIT types
 /// before calling the agent interface.
 pub fn message_send_params_to_wit(
-    params: &a2a_types::MessageSendParams,
+    params: &a2a_types::SendMessageRequest,
 ) -> Result<MessageSendParams, String> {
     let configuration = params
         .configuration
         .as_ref()
         .map(message_send_config_from_a2a);
 
+    // In prost-generated types, request is Option<Message>
+    let message = params
+        .request
+        .as_ref()
+        .ok_or_else(|| "SendMessageRequest has no message".to_string())?;
+
     Ok(MessageSendParams {
-        message: message_from_a2a(&params.message)?,
+        message: message_from_a2a(message)?,
         configuration,
     })
 }
 
-/// Convert a2a-types MessageSendConfiguration to WIT MessageSendConfig.
-fn message_send_config_from_a2a(config: &a2a_types::MessageSendConfiguration) -> MessageSendConfig {
+/// Convert a2a-types SendMessageConfiguration to WIT MessageSendConfig.
+fn message_send_config_from_a2a(
+    config: &a2a_types::SendMessageConfiguration,
+) -> MessageSendConfig {
     MessageSendConfig {
         accepted_output_modes: if config.accepted_output_modes.is_empty() {
             None
@@ -260,7 +308,8 @@ fn message_send_config_from_a2a(config: &a2a_types::MessageSendConfiguration) ->
             Some(config.accepted_output_modes.clone())
         },
         history_length: config.history_length.map(|v| v as u32),
-        blocking: config.blocking,
+        // In prost-generated types, blocking is bool not Option<bool>
+        blocking: Some(config.blocking),
     }
 }
 
@@ -269,11 +318,18 @@ fn message_send_config_from_a2a(config: &a2a_types::MessageSendConfiguration) ->
 /// Used by the server to convert agent interface responses back to
 /// a2a-types for JSON serialization.
 pub fn send_response_from_wit(response: &SendResponse) -> a2a_types::SendMessageResponse {
+    // In prost-generated types, SendMessageResponse uses a payload oneof
     match response {
-        SendResponse::Task(task) => a2a_types::SendMessageResponse::Task(task_from_wit(task)),
-        SendResponse::Message(msg) => {
-            a2a_types::SendMessageResponse::Message(message_to_a2a_clone(msg))
-        }
+        SendResponse::Task(task) => a2a_types::SendMessageResponse {
+            payload: Some(a2a_types::send_message_response::Payload::Task(
+                task_from_wit(task),
+            )),
+        },
+        SendResponse::Message(msg) => a2a_types::SendMessageResponse {
+            payload: Some(a2a_types::send_message_response::Payload::Msg(
+                message_to_a2a_clone(msg),
+            )),
+        },
     }
 }
 
@@ -297,22 +353,26 @@ pub fn task_from_wit(task: &Task) -> a2a_types::Task {
     a2a_types::Task {
         id: task.id.clone(),
         context_id: task.context_id.clone(),
-        status: task_status_to_a2a(&task.status),
+        // In prost-generated types, status is Option<TaskStatus>
+        status: Some(task_status_to_a2a_struct(&task.status)),
         history,
         artifacts,
-        kind: None,
-        metadata: Default::default(),
+        metadata: None,
     }
 }
 
-/// Convert WIT TaskStatus to a2a-types TaskStatus.
-fn task_status_to_a2a(status: &TaskStatus) -> a2a_types::TaskStatus {
+/// Convert WIT TaskStatus to a2a-types TaskStatus struct.
+fn task_status_to_a2a_struct(status: &TaskStatus) -> a2a_types::TaskStatus {
     let message = status.message.as_ref().map(message_to_a2a_clone);
-    // Parse RFC 3339 timestamp string to DateTime<Utc>
+    // Parse RFC 3339 timestamp string to prost_types::Timestamp
     let timestamp = status.timestamp.as_ref().and_then(|ts| {
-        chrono::DateTime::parse_from_rfc3339(ts)
-            .ok()
-            .map(|dt| dt.with_timezone(&chrono::Utc))
+        chrono::DateTime::parse_from_rfc3339(ts).ok().map(|dt| {
+            let dt_utc = dt.with_timezone(&chrono::Utc);
+            prost_types::Timestamp {
+                seconds: dt_utc.timestamp(),
+                nanos: dt_utc.timestamp_subsec_nanos() as i32,
+            }
+        })
     });
 
     a2a_types::TaskStatus {
@@ -333,24 +393,23 @@ fn message_to_a2a_clone(msg: &Message) -> a2a_types::Message {
     a2a_types::Message {
         role: role_to_a2a(msg.role),
         parts,
-        message_id: msg.message_id.clone(),
-        task_id: msg.task_id.clone(),
-        context_id: msg.context_id.clone(),
-        kind: None,
+        // In prost-generated types, these are String not Option<String>
+        message_id: msg.message_id.clone().unwrap_or_default(),
+        task_id: msg.task_id.clone().unwrap_or_default(),
+        context_id: msg.context_id.clone().unwrap_or_default(),
         reference_task_ids: vec![],
         extensions: vec![],
-        metadata: Default::default(),
+        metadata: None,
     }
 }
 
 /// Convert WIT Part to a2a-types Part (clone-based).
 fn part_to_a2a_clone(part: &Part) -> Result<a2a_types::Part, String> {
     match part {
-        Part::Text(text_part) => Ok(a2a_types::Part::TextPart(a2a_types::TextPart {
-            kind: "text".to_string(),
-            text: text_part.text.clone(),
-            metadata: Default::default(),
-        })),
+        Part::Text(text_part) => Ok(a2a_types::Part {
+            part: Some(a2a_types::part::Part::Text(text_part.text.clone())),
+            metadata: None,
+        }),
         Part::File(_) => Err("FilePart not implemented".to_string()),
         Part::Data(_) => Err("DataPart not implemented".to_string()),
     }
@@ -366,11 +425,12 @@ fn artifact_to_a2a(artifact: &Artifact) -> a2a_types::Artifact {
 
     a2a_types::Artifact {
         artifact_id: artifact.artifact_id.clone(),
-        name: artifact.name.clone(),
-        description: artifact.description.clone(),
+        // In prost-generated types, name and description are String not Option<String>
+        name: artifact.name.clone().unwrap_or_default(),
+        description: artifact.description.clone().unwrap_or_default(),
         parts,
         extensions: vec![],
-        metadata: Default::default(),
+        metadata: None,
     }
 }
 
@@ -380,54 +440,59 @@ mod tests {
 
     #[test]
     fn test_role_conversion() {
-        assert!(matches!(role_to_a2a(Role::User), a2a_types::Role::User));
-        assert!(matches!(role_to_a2a(Role::Agent), a2a_types::Role::Agent));
-        assert!(matches!(role_from_a2a(&a2a_types::Role::User), Role::User));
+        // role_to_a2a now returns i32
+        assert_eq!(role_to_a2a(Role::User), a2a_types::Role::User as i32);
+        assert_eq!(role_to_a2a(Role::Agent), a2a_types::Role::Agent as i32);
+        // role_from_a2a now takes i32
         assert!(matches!(
-            role_from_a2a(&a2a_types::Role::Agent),
+            role_from_a2a(a2a_types::Role::User as i32),
+            Role::User
+        ));
+        assert!(matches!(
+            role_from_a2a(a2a_types::Role::Agent as i32),
             Role::Agent
         ));
     }
 
     #[test]
     fn test_task_state_conversion() {
-        // Test all 9 states
-        assert!(matches!(
+        // task_state_to_a2a now returns i32
+        assert_eq!(
             task_state_to_a2a(TaskState::Submitted),
-            a2a_types::TaskState::Submitted
-        ));
-        assert!(matches!(
+            a2a_types::TaskState::Submitted as i32
+        );
+        assert_eq!(
             task_state_to_a2a(TaskState::Working),
-            a2a_types::TaskState::Working
-        ));
-        assert!(matches!(
+            a2a_types::TaskState::Working as i32
+        );
+        assert_eq!(
             task_state_to_a2a(TaskState::InputRequired),
-            a2a_types::TaskState::InputRequired
-        ));
-        assert!(matches!(
+            a2a_types::TaskState::InputRequired as i32
+        );
+        assert_eq!(
             task_state_to_a2a(TaskState::Completed),
-            a2a_types::TaskState::Completed
-        ));
-        assert!(matches!(
+            a2a_types::TaskState::Completed as i32
+        );
+        assert_eq!(
             task_state_to_a2a(TaskState::Canceled),
-            a2a_types::TaskState::Canceled
-        ));
-        assert!(matches!(
+            a2a_types::TaskState::Cancelled as i32
+        );
+        assert_eq!(
             task_state_to_a2a(TaskState::Failed),
-            a2a_types::TaskState::Failed
-        ));
-        assert!(matches!(
+            a2a_types::TaskState::Failed as i32
+        );
+        assert_eq!(
             task_state_to_a2a(TaskState::Rejected),
-            a2a_types::TaskState::Rejected
-        ));
-        assert!(matches!(
+            a2a_types::TaskState::Rejected as i32
+        );
+        assert_eq!(
             task_state_to_a2a(TaskState::AuthRequired),
-            a2a_types::TaskState::AuthRequired
-        ));
-        assert!(matches!(
+            a2a_types::TaskState::AuthRequired as i32
+        );
+        assert_eq!(
             task_state_to_a2a(TaskState::Unknown),
-            a2a_types::TaskState::Unknown
-        ));
+            a2a_types::TaskState::Unspecified as i32
+        );
     }
 
     #[test]
@@ -436,10 +501,14 @@ mod tests {
             text: "hello".to_string(),
         });
         let a2a_part = part_to_a2a(wit_part).unwrap();
-        assert!(matches!(a2a_part, a2a_types::Part::TextPart(_)));
+        // Part is now a struct with a part field (oneof)
+        assert!(matches!(
+            a2a_part.part,
+            Some(a2a_types::part::Part::Text(_))
+        ));
 
-        if let a2a_types::Part::TextPart(tp) = a2a_part {
-            assert_eq!(tp.text, "hello");
+        if let Some(a2a_types::part::Part::Text(text)) = a2a_part.part {
+            assert_eq!(text, "hello");
         }
     }
 
@@ -485,20 +554,22 @@ mod tests {
             }),
         };
 
-        // Convert to a2a-types
+        // Convert to a2a-types (now returns SendMessageRequest)
         let a2a_params = message_send_params_to_a2a(wit_params).unwrap();
 
-        // Verify message fields
-        assert!(matches!(a2a_params.message.role, a2a_types::Role::User));
-        assert_eq!(a2a_params.message.parts.len(), 1);
-        if let a2a_types::Part::TextPart(tp) = &a2a_params.message.parts[0] {
-            assert_eq!(tp.text, "Hello, agent!");
+        // Verify message fields - request is now Option<Message>
+        let message = a2a_params.request.unwrap();
+        assert_eq!(message.role, a2a_types::Role::User as i32);
+        assert_eq!(message.parts.len(), 1);
+        if let Some(a2a_types::part::Part::Text(text)) = &message.parts[0].part {
+            assert_eq!(text, "Hello, agent!");
         } else {
-            panic!("Expected TextPart");
+            panic!("Expected Text part");
         }
-        assert_eq!(a2a_params.message.message_id, Some("msg-123".to_string()));
-        assert_eq!(a2a_params.message.task_id, Some("task-456".to_string()));
-        assert_eq!(a2a_params.message.context_id, Some("ctx-789".to_string()));
+        // In prost-generated types, these are String not Option<String>
+        assert_eq!(message.message_id, "msg-123");
+        assert_eq!(message.task_id, "task-456");
+        assert_eq!(message.context_id, "ctx-789");
 
         // Verify configuration fields
         let config = a2a_params.configuration.unwrap();
@@ -507,55 +578,53 @@ mod tests {
             vec!["text".to_string(), "json".to_string()]
         );
         assert_eq!(config.history_length, Some(10));
-        assert_eq!(config.blocking, Some(true));
+        // In prost-generated types, blocking is bool not Option<bool>
+        assert!(config.blocking);
     }
 
     #[test]
     fn test_task_from_a2a_with_history() {
         // Create an a2a-types Task with non-empty history
+        // In prost-generated types, status is Option<TaskStatus>, role is i32,
+        // message fields are String not Option<String>, and Part uses oneof
         let a2a_task = a2a_types::Task {
             id: "task-001".to_string(),
             context_id: "ctx-001".to_string(),
-            status: a2a_types::TaskStatus {
-                state: a2a_types::TaskState::Working,
+            status: Some(a2a_types::TaskStatus {
+                state: a2a_types::TaskState::Working as i32,
                 message: None,
                 timestamp: None,
-            },
+            }),
             history: vec![
                 a2a_types::Message {
-                    role: a2a_types::Role::User,
-                    parts: vec![a2a_types::Part::TextPart(a2a_types::TextPart {
-                        kind: "text".to_string(),
-                        text: "First message".to_string(),
-                        metadata: Default::default(),
-                    })],
-                    message_id: Some("msg-1".to_string()),
-                    task_id: Some("task-001".to_string()),
-                    context_id: Some("ctx-001".to_string()),
-                    kind: None,
+                    role: a2a_types::Role::User as i32,
+                    parts: vec![a2a_types::Part {
+                        part: Some(a2a_types::part::Part::Text("First message".to_string())),
+                        metadata: None,
+                    }],
+                    message_id: "msg-1".to_string(),
+                    task_id: "task-001".to_string(),
+                    context_id: "ctx-001".to_string(),
                     reference_task_ids: vec![],
                     extensions: vec![],
-                    metadata: Default::default(),
+                    metadata: None,
                 },
                 a2a_types::Message {
-                    role: a2a_types::Role::Agent,
-                    parts: vec![a2a_types::Part::TextPart(a2a_types::TextPart {
-                        kind: "text".to_string(),
-                        text: "Second message".to_string(),
-                        metadata: Default::default(),
-                    })],
-                    message_id: Some("msg-2".to_string()),
-                    task_id: Some("task-001".to_string()),
-                    context_id: Some("ctx-001".to_string()),
-                    kind: None,
+                    role: a2a_types::Role::Agent as i32,
+                    parts: vec![a2a_types::Part {
+                        part: Some(a2a_types::part::Part::Text("Second message".to_string())),
+                        metadata: None,
+                    }],
+                    message_id: "msg-2".to_string(),
+                    task_id: "task-001".to_string(),
+                    context_id: "ctx-001".to_string(),
                     reference_task_ids: vec![],
                     extensions: vec![],
-                    metadata: Default::default(),
+                    metadata: None,
                 },
             ],
             artifacts: vec![],
-            kind: None,
-            metadata: Default::default(),
+            metadata: None,
         };
 
         // Convert to WIT Task
@@ -588,36 +657,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_error_from_jsonrpc_preserves_code() {
-        // Test various error codes to ensure they are preserved exactly
-        let test_cases = vec![
-            (-32700, "Parse error"),
-            (-32600, "Invalid Request"),
-            (-32601, "Method not found"),
-            (-32602, "Invalid params"),
-            (-32603, "Internal error"),
-            (-32000, "Server error"),
-            (42, "Custom positive code"),
-            (0, "Zero code"),
-        ];
-
-        for (code, message) in test_cases {
-            let jsonrpc_err = a2a_types::JsonrpcError {
-                code: code as i64,
-                message: message.to_string(),
-                data: None,
-            };
-
-            let wit_err = error_from_a2a(&jsonrpc_err);
-
-            assert_eq!(wit_err.code, code, "Error code should be preserved exactly");
-            assert_eq!(
-                wit_err.message, message,
-                "Error message should be preserved"
-            );
-        }
-    }
+    // Note: test_error_from_jsonrpc_preserves_code was removed because
+    // JsonrpcError type no longer exists in prost-generated types.
 
     #[test]
     fn test_error_from_transport_uses_32603() {
