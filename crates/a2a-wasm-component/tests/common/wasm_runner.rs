@@ -23,6 +23,13 @@ wasmtime::component::bindgen!({
     async: true,
 });
 
+// Re-export types from the generated bindings for convenience
+use a2a::protocol::agent::Host as AgentHost;
+use a2a::protocol::types::{
+    Error as A2aError, Message, MessageSendParams, Part, Role, SendResponse, Task, TaskState,
+    TaskStatus, TextPart,
+};
+
 /// State held by the wasmtime Store, providing WASI and HTTP contexts.
 struct TestState {
     wasi: WasiCtx,
@@ -50,15 +57,82 @@ impl WasiHttpView for TestState {
     }
 }
 
+/// Mock implementation of the A2A agent interface for testing.
+///
+/// This provides simple mock responses for the agent interface that the component imports.
+/// These are only used for component instantiation - the actual tests use the client
+/// interface to talk to external servers.
+impl AgentHost for TestState {
+    /// Get agent card as JSON string
+    async fn get_agent_card(&mut self) -> Result<String, A2aError> {
+        Ok(r#"{"name": "test-agent", "capabilities": {}}"#.to_string())
+    }
+
+    /// Process incoming message (blocking) - returns a simple echo response
+    async fn on_message(&mut self, params: MessageSendParams) -> Result<SendResponse, A2aError> {
+        // Extract text from the first part of the message for echoing
+        let echo_text = params
+            .message
+            .parts
+            .first()
+            .and_then(|part| match part {
+                Part::Text(text_part) => Some(format!("Echo: {}", text_part.text)),
+                _ => None,
+            })
+            .unwrap_or_else(|| "Echo: (no text)".to_string());
+
+        // Return a Task with completed status containing the echo
+        let task = Task {
+            id: "mock-task-id".to_string(),
+            context_id: params
+                .message
+                .context_id
+                .unwrap_or_else(|| "mock-context-id".to_string()),
+            status: TaskStatus {
+                state: TaskState::Completed,
+                message: Some(Message {
+                    role: Role::Agent,
+                    parts: vec![Part::Text(TextPart { text: echo_text })],
+                    message_id: Some("mock-response-id".to_string()),
+                    task_id: Some("mock-task-id".to_string()),
+                    context_id: None,
+                }),
+                timestamp: Some("2024-01-01T00:00:00Z".to_string()),
+            },
+            history: None,
+            artifacts: None,
+        };
+
+        Ok(SendResponse::Task(task))
+    }
+
+    /// Retrieve task by ID - returns None (task not found)
+    async fn on_get_task(
+        &mut self,
+        _id: String,
+        _history_length: Option<u32>,
+    ) -> Result<Option<Task>, A2aError> {
+        Ok(None)
+    }
+
+    /// Handle cancellation - returns None (task not found)
+    async fn on_cancel_task(&mut self, _id: String) -> Result<Option<Task>, A2aError> {
+        Ok(None)
+    }
+}
+
 /// WASM component runner for testing A2A client operations.
 ///
 /// This struct handles:
 /// - Loading and instantiating the WASM component
 /// - Setting up WASI and WASI-HTTP contexts
 /// - Calling the component's exported functions
+///
+/// Note: We use manual instantiation instead of `A2aComponent::instantiate_async`
+/// to avoid type mismatches with the wasi:http/incoming-handler export which we don't need.
 pub struct WasmRunner {
     store: Store<TestState>,
-    bindings: A2aComponent,
+    client: exports::a2a::protocol::client::Guest,
 }
 
 impl WasmRunner {
@@ -85,6 +159,11 @@ impl WasmRunner {
         wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)
             .expect("Failed to add WASI HTTP to linker");
 
+        // Add the mock agent interface to the linker
+        // The component imports a2a:protocol/agent which we provide with our mock implementation
+        a2a::protocol::agent::add_to_linker(&mut linker, |state| state)
+            .expect("Failed to add agent interface to linker");
+
         // Build WASI context with environment access
         let wasi = WasiCtxBuilder::new().inherit_env().build();
 
@@ -96,12 +175,22 @@ impl WasmRunner {
 
         let mut store = Store::new(&engine, state);
 
-        // Instantiate the component and get typed bindings
-        let bindings = A2aComponent::instantiate_async(&mut store, &component, &linker)
+        // Instantiate the component using Linker directly
+        // This bypasses the typed bindings that would fail due to wasi:http version mismatch
+        let instance = linker
+            .instantiate_async(&mut store, &component)
             .await
             .expect("Failed to instantiate component");
 
-        Self { store, bindings }
+        // Get only the client interface - we don't need incoming-handler for these tests
+        let client_indices =
+            exports::a2a::protocol::client::GuestIndices::new_instance(&mut store, &instance)
+                .expect("Failed to find client export");
+        let client = client_indices
+            .load(&mut store, &instance)
+            .expect("Failed to load client interface");
+
+        Self { store, client }
     }
 
     /// Send a message to an A2A agent via the WASM component.
@@ -145,8 +234,8 @@ impl WasmRunner {
         };
 
         // Call the component's send_message export
-        let client = self.bindings.a2a_protocol_client();
-        let result = client
+        let result = self
+            .client
             .call_send_message(&mut self.store, url, &params)
             .await
             .map_err(|e| format!("WASM trap: {e}"))?;
@@ -174,8 +263,8 @@ impl WasmRunner {
         id: &str,
         history_length: Option<u32>,
     ) -> Result<Option<Value>, String> {
-        let client = self.bindings.a2a_protocol_client();
-        let result = client
+        let result = self
+            .client
             .call_get_task(&mut self.store, url, id, history_length)
             .await
             .map_err(|e| format!("WASM trap: {e}"))?;
@@ -198,8 +287,8 @@ impl WasmRunner {
     ///
     /// The canceled task as a JSON value (or null if not found), or an error string.
     pub async fn cancel_task(&mut self, url: &str, id: &str) -> Result<Option<Value>, String> {
-        let client = self.bindings.a2a_protocol_client();
-        let result = client
+        let result = self
+            .client
             .call_cancel_task(&mut self.store, url, id)
             .await
             .map_err(|e| format!("WASM trap: {e}"))?;
