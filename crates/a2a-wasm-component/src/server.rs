@@ -43,8 +43,7 @@ fn handle_request(request: IncomingRequest) -> Result<(u16, &'static str, Vec<u8
     }
 
     // JSON-RPC binding: POST /
-    if (path == "/" || path.is_empty())
-        && matches!(method, crate::wasi::http::types::Method::Post)
+    if (path == "/" || path.is_empty()) && matches!(method, crate::wasi::http::types::Method::Post)
     {
         return jsonrpc::handle(&request);
     }

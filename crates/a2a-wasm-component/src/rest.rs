@@ -89,8 +89,8 @@ fn handle_send_message(
     let params: a2a_types::MessageSendParams =
         serde_json::from_slice(&body).map_err(|e| (400, format!("Invalid JSON: {e}")))?;
 
-    let wit_params =
-        convert::message_send_params_to_wit(&params).map_err(|e| (400, format!("Invalid params: {e}")))?;
+    let wit_params = convert::message_send_params_to_wit(&params)
+        .map_err(|e| (400, format!("Invalid params: {e}")))?;
 
     match agent::on_message(&wit_params) {
         Ok(response) => {

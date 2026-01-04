@@ -18,8 +18,11 @@ pub fn send_message_request(base_url: &str, body: Vec<u8>) -> HttpRequest {
 
 /// GET /v1/tasks/{id}
 pub fn get_task_request(base_url: &str, task_id: &TaskId) -> HttpRequest {
-    HttpRequest::get(endpoint(base_url, &format!("/v1/tasks/{}", task_id.as_str())))
-        .with_header("Accept", "application/json")
+    HttpRequest::get(endpoint(
+        base_url,
+        &format!("/v1/tasks/{}", task_id.as_str()),
+    ))
+    .with_header("Accept", "application/json")
 }
 
 /// GET /v1/tasks/{id}?historyLength={n}
@@ -30,7 +33,11 @@ pub fn get_task_with_history_request(
 ) -> HttpRequest {
     HttpRequest::get(endpoint(
         base_url,
-        &format!("/v1/tasks/{}?historyLength={}", task_id.as_str(), history_length),
+        &format!(
+            "/v1/tasks/{}?historyLength={}",
+            task_id.as_str(),
+            history_length
+        ),
     ))
     .with_header("Accept", "application/json")
 }
