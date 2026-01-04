@@ -3,6 +3,10 @@
 //! Exports wasi:http/incoming-handler to handle incoming A2A requests.
 
 use crate::exports::wasi::http::incoming_handler::Guest;
+
+/// Maximum request body size (1 MB).
+const MAX_BODY_SIZE: usize = 1024 * 1024;
+
 use crate::jsonrpc::{self, Response};
 use crate::wasi::http::types::{
     Headers, IncomingRequest, OutgoingBody, OutgoingResponse, ResponseOutparam,
@@ -178,6 +182,9 @@ fn read_request_body(request: &IncomingRequest) -> Result<Vec<u8>, (u16, String)
             Ok(chunk) => {
                 if chunk.is_empty() {
                     break;
+                }
+                if data.len() + chunk.len() > MAX_BODY_SIZE {
+                    return Err((413, "Request body too large".to_string()));
                 }
                 data.extend_from_slice(&chunk);
             }
