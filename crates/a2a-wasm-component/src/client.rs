@@ -20,11 +20,13 @@ const ERROR_CODE_TASK_NOT_FOUND: i32 = -32001;
 /// Maps an a2a_client error to a WIT Error.
 fn map_client_error(e: a2a_client::Error) -> Error {
     match e {
-        a2a_client::Error::JsonRpc {
-            code,
+        a2a_client::Error::Agent {
             message,
-            data: _,
-        } => Error { code, message },
+            source: a2a_client::ProtocolError::JsonRpc { code, .. },
+        } => Error {
+            code: code.code(),
+            message,
+        },
         a2a_client::Error::Transport(msg) => Error {
             code: ERROR_CODE_TRANSPORT,
             message: msg,
@@ -127,7 +129,14 @@ pub fn get_task(
             })?;
             Ok(Some(wit_task))
         }
-        Err(ref e) if matches!(e, a2a_client::Error::JsonRpc { code, .. } if *code == ERROR_CODE_TASK_NOT_FOUND) =>
+        Err(ref e)
+            if matches!(
+                e,
+                a2a_client::Error::Agent {
+                    source: a2a_client::ProtocolError::JsonRpc { code, .. },
+                    ..
+                } if code.code() == ERROR_CODE_TASK_NOT_FOUND
+            ) =>
         {
             // Task not found
             Ok(None)
@@ -162,7 +171,14 @@ pub fn cancel_task(agent_url: String, id: String) -> Result<Option<Task>, Error>
             })?;
             Ok(Some(wit_task))
         }
-        Err(ref e) if matches!(e, a2a_client::Error::JsonRpc { code, .. } if *code == ERROR_CODE_TASK_NOT_FOUND) =>
+        Err(ref e)
+            if matches!(
+                e,
+                a2a_client::Error::Agent {
+                    source: a2a_client::ProtocolError::JsonRpc { code, .. },
+                    ..
+                } if code.code() == ERROR_CODE_TASK_NOT_FOUND
+            ) =>
         {
             // Task not found
             Ok(None)

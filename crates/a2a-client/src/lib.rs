@@ -5,7 +5,7 @@ pub mod error;
 pub mod jsonrpc;
 pub mod sse;
 
-pub use error::{Error, Result};
+pub use error::{Error, JsonRpcErrorCode, ParamError, ProtocolError, Result};
 
 use a2a_transport::{HttpClient, HttpRequest};
 use jsonrpc::{JsonRpcRequest, JsonRpcResponse, JsonRpcResult};
@@ -79,10 +79,13 @@ impl<T: HttpClient> Client<T> {
 
         match rpc_response.result {
             JsonRpcResult::Success { result } => Ok(result),
-            JsonRpcResult::Error { error } => Err(Error::JsonRpc {
-                code: error.code,
-                message: error.message,
-                data: error.data,
+            JsonRpcResult::Error { error } => Err(Error::Agent {
+                message: error.message.clone(),
+                source: ProtocolError::JsonRpc {
+                    code: JsonRpcErrorCode::from_code(error.code),
+                    message: error.message,
+                    data: error.data,
+                },
             }),
         }
     }
