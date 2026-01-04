@@ -12,51 +12,45 @@ pub use builder::ClientBuilder;
 pub use error::{Error, JsonRpcErrorCode, ParamError, ProtocolError, Result};
 
 use a2a_transport::{HttpClient, HttpRequest};
+use a2a_types::AgentCard;
+use binding::SelectedBinding;
 use jsonrpc::{JsonRpcRequest, JsonRpcResponse, JsonRpcResult};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// A2A client for communicating with A2A agents.
 pub struct Client<T: HttpClient> {
     transport: T,
-    base_url: String,
+    agent_card: AgentCard,
+    binding: SelectedBinding,
     request_id: AtomicU64,
 }
 
 impl<T: HttpClient> Client<T> {
-    /// Create a new client with the given transport and base URL.
-    pub fn new(transport: T, base_url: impl Into<String>) -> Self {
-        Self {
-            transport,
-            base_url: base_url.into(),
-            request_id: AtomicU64::new(1),
-        }
+    /// Create a new client by discovering the agent.
+    ///
+    /// Uses default binding preference (JSON-RPC > REST).
+    pub async fn connect(transport: T, base_url: impl Into<String>) -> Result<Self> {
+        ClientBuilder::new(transport, base_url).build().await
+    }
+
+    /// Create a builder for custom configuration.
+    pub fn builder(transport: T, base_url: impl Into<String>) -> ClientBuilder<T> {
+        ClientBuilder::new(transport, base_url)
+    }
+
+    /// Get the cached agent card.
+    pub fn agent_card(&self) -> &AgentCard {
+        &self.agent_card
+    }
+
+    /// Get the selected binding.
+    pub fn binding(&self) -> &SelectedBinding {
+        &self.binding
     }
 
     /// Get the next request ID.
     fn next_id(&self) -> String {
         self.request_id.fetch_add(1, Ordering::SeqCst).to_string()
-    }
-
-    /// Discover an agent by fetching its agent card.
-    pub async fn discover(&self) -> Result<serde_json::Value> {
-        let url = format!(
-            "{}/.well-known/agent-card.json",
-            self.base_url.trim_end_matches('/')
-        );
-        let request = HttpRequest::get(&url).with_header("Accept", "application/json");
-
-        let response = self
-            .transport
-            .request(request)
-            .await
-            .map_err(|e| Error::Transport(e.to_string()))?;
-
-        if response.status != 200 {
-            return Err(Error::AgentNotFound(url));
-        }
-
-        let agent_card: serde_json::Value = serde_json::from_slice(&response.body)?;
-        Ok(agent_card)
     }
 
     /// Send a JSON-RPC request to the agent.
@@ -68,7 +62,7 @@ impl<T: HttpClient> Client<T> {
         let request = JsonRpcRequest::new(self.next_id(), method, params);
         let body = serde_json::to_vec(&request)?;
 
-        let url = format!("{}/", self.base_url.trim_end_matches('/'));
+        let url = format!("{}/", self.binding.url().trim_end_matches('/'));
         let http_request = HttpRequest::post(&url, body)
             .with_header("Content-Type", "application/json")
             .with_header("Accept", "application/json");

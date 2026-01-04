@@ -78,9 +78,9 @@ pub fn send_message(agent_url: String, params: MessageSendParams) -> Result<Send
         message: e,
     })?;
 
-    // Create HTTP client and A2A client
+    // Create HTTP client and A2A client (discovery is async)
     let http_client = WasiHttpClient::new();
-    let client = Client::new(http_client, &agent_url);
+    let client = block_on(Client::connect(http_client, &agent_url)).map_err(map_client_error)?;
 
     // Make the RPC call
     let result: Result<a2a_types::SendMessageResponse, _> =
@@ -113,9 +113,9 @@ pub fn get_task(
         metadata: Default::default(),
     };
 
-    // Create HTTP client and A2A client
+    // Create HTTP client and A2A client (discovery is async)
     let http_client = WasiHttpClient::new();
-    let client = Client::new(http_client, &agent_url);
+    let client = block_on(Client::connect(http_client, &agent_url)).map_err(map_client_error)?;
 
     // Make the RPC call
     let result: Result<a2a_types::Task, _> = block_on(client.rpc("tasks/get", &params));
@@ -155,9 +155,9 @@ pub fn cancel_task(agent_url: String, id: String) -> Result<Option<Task>, Error>
         metadata: Default::default(),
     };
 
-    // Create HTTP client and A2A client
+    // Create HTTP client and A2A client (discovery is async)
     let http_client = WasiHttpClient::new();
-    let client = Client::new(http_client, &agent_url);
+    let client = block_on(Client::connect(http_client, &agent_url)).map_err(map_client_error)?;
 
     // Make the RPC call
     let result: Result<a2a_types::Task, _> = block_on(client.rpc("tasks/cancel", &params));
