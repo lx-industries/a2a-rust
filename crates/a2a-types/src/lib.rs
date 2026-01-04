@@ -1,22 +1,10 @@
 //! A2A Protocol type definitions.
 
 pub mod error;
-
-#[allow(
-    clippy::derivable_impls,
-    clippy::clone_on_copy,
-    clippy::large_enum_variant
-)]
-mod generated {
-    // Re-export our error module so generated code can find ConversionError
-    pub use super::error;
-
-    // Include generated types
-    include!(concat!(env!("OUT_DIR"), "/generated_types.rs"));
-}
+mod generated;
 
 // Re-export all generated types at the crate root
-pub use generated::*;
+pub use generated::a2a::v1::*;
 
 use serde::{Deserialize, Serialize};
 
@@ -69,7 +57,7 @@ impl std::fmt::Display for Binding {
     }
 }
 
-/// Protocol binding as declared in Agent Card.
+/// Protocol binding as declared in Agent Card (parses proto's string field).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProtocolBinding {
     #[serde(rename = "JSONRPC")]
@@ -90,12 +78,14 @@ impl From<ProtocolBinding> for Option<Binding> {
     }
 }
 
-/// Interface declaration in Agent Card.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AgentInterface {
-    pub protocol_binding: ProtocolBinding,
-    pub url: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tenant: Option<String>,
+/// Parse a protocol binding string from the proto.
+impl ProtocolBinding {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "JSONRPC" => Some(Self::JsonRpc),
+            "HTTP+JSON" => Some(Self::Rest),
+            "GRPC" => Some(Self::Grpc),
+            _ => None,
+        }
+    }
 }
