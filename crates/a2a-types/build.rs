@@ -17,6 +17,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     config.type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]");
     config.type_attribute(".", "#[serde(rename_all = \"camelCase\")]");
 
+    // Skip serde for fields using prost_types::Struct (not serde-compatible)
+    // These need custom serialization handling at the application layer
+    config.field_attribute("a2a.v1.Task.metadata", "#[serde(skip)]");
+    config.field_attribute("a2a.v1.Part.metadata", "#[serde(skip)]");
+    config.field_attribute("a2a.v1.DataPart.data", "#[serde(skip)]");
+    config.field_attribute("a2a.v1.Message.metadata", "#[serde(skip)]");
+    config.field_attribute("a2a.v1.Artifact.metadata", "#[serde(skip)]");
+    config.field_attribute("a2a.v1.TaskStatusUpdateEvent.metadata", "#[serde(skip)]");
+    config.field_attribute("a2a.v1.TaskArtifactUpdateEvent.metadata", "#[serde(skip)]");
+    config.field_attribute("a2a.v1.AgentExtension.params", "#[serde(skip)]");
+    config.field_attribute("a2a.v1.AgentCardSignature.header", "#[serde(skip)]");
+    config.field_attribute("a2a.v1.SendMessageRequest.metadata", "#[serde(skip)]");
+
+    // Skip serde for fields using prost_types::Timestamp (not serde-compatible)
+    config.field_attribute("a2a.v1.TaskStatus.timestamp", "#[serde(skip)]");
+
     // Output to src/generated/a2a/
     let out_dir = PathBuf::from("src/generated/a2a");
     fs::create_dir_all(&out_dir)?;

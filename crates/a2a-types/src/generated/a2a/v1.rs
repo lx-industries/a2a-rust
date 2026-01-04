@@ -48,6 +48,7 @@ pub struct Task {
     /// protolint:enable REPEATED_FIELD_NAMES_PLURALIZED
     /// A key/value object to store custom metadata about a task.
     #[prost(message, optional, tag = "6")]
+    #[serde(skip)]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
 }
 /// --8<-- \[start:TaskStatus\]
@@ -65,6 +66,7 @@ pub struct TaskStatus {
     /// ISO 8601 Timestamp when the status was recorded.
     /// Example: "2023-10-27T10:00:00Z"
     #[prost(message, optional, tag = "3")]
+    #[serde(skip)]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// --8<-- \[start:Part\]
@@ -77,6 +79,7 @@ pub struct TaskStatus {
 pub struct Part {
     /// Optional metadata associated with this part.
     #[prost(message, optional, tag = "4")]
+    #[serde(skip)]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
     #[prost(oneof = "part::Part", tags = "1, 2, 3")]
     pub part: ::core::option::Option<part::Part>,
@@ -138,6 +141,7 @@ pub mod file_part {
 pub struct DataPart {
     ///   A JSON object containing arbitrary data.
     #[prost(message, optional, tag = "1")]
+    #[serde(skip)]
     pub data: ::core::option::Option<::prost_types::Struct>,
 }
 /// --8<-- \[start:Message\]
@@ -173,6 +177,7 @@ pub struct Message {
     /// protolint:enable REPEATED_FIELD_NAMES_PLURALIZED
     /// Any optional metadata to provide along with the message.
     #[prost(message, optional, tag = "6")]
+    #[serde(skip)]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
     /// The URIs of extensions that are present or contributed to this Message.
     #[prost(string, repeated, tag = "7")]
@@ -202,6 +207,7 @@ pub struct Artifact {
     pub parts: ::prost::alloc::vec::Vec<Part>,
     /// Optional metadata included with the artifact.
     #[prost(message, optional, tag = "6")]
+    #[serde(skip)]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
     /// The URIs of extensions that are present or contributed to this Artifact.
     #[prost(string, repeated, tag = "7")]
@@ -228,6 +234,7 @@ pub struct TaskStatusUpdateEvent {
     pub r#final: bool,
     /// Optional metadata to associate with the task update.
     #[prost(message, optional, tag = "5")]
+    #[serde(skip)]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
 }
 /// --8<-- \[start:TaskArtifactUpdateEvent\]
@@ -255,6 +262,7 @@ pub struct TaskArtifactUpdateEvent {
     pub last_chunk: bool,
     /// Optional metadata associated with the artifact update.
     #[prost(message, optional, tag = "6")]
+    #[serde(skip)]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
 }
 /// --8<-- \[start:PushNotificationConfig\]
@@ -443,6 +451,7 @@ pub struct AgentExtension {
     pub required: bool,
     /// Optional, extension-specific configuration parameters.
     #[prost(message, optional, tag = "4")]
+    #[serde(skip)]
     pub params: ::core::option::Option<::prost_types::Struct>,
 }
 /// --8<-- \[start:AgentSkill\]
@@ -495,6 +504,7 @@ pub struct AgentCardSignature {
     pub signature: ::prost::alloc::string::String,
     /// The unprotected JWS header values.
     #[prost(message, optional, tag = "3")]
+    #[serde(skip)]
     pub header: ::core::option::Option<::prost_types::Struct>,
 }
 /// --8<-- \[start:TaskPushNotificationConfig\]
@@ -763,6 +773,7 @@ pub struct SendMessageRequest {
     pub configuration: ::core::option::Option<SendMessageConfiguration>,
     /// A flexible key-value map for passing additional context or parameters.
     #[prost(message, optional, tag = "3")]
+    #[serde(skip)]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
 }
 /// --8<-- \[start:GetTaskRequest\]
