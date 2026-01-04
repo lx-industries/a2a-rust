@@ -43,6 +43,7 @@
 mod client;
 mod convert;
 mod jsonrpc;
+mod rest;
 mod server;
 
 // Generate WIT bindings

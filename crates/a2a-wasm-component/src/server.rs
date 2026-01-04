@@ -37,9 +37,9 @@ fn handle_request(request: IncomingRequest) -> Result<(u16, &'static str, Vec<u8
         return handle_agent_card();
     }
 
-    // REST binding: /v1/* paths (placeholder for Task 9)
+    // REST binding: /v1/* paths
     if path.starts_with("/v1/") {
-        return Err((501, "REST binding not yet implemented".to_string()));
+        return crate::rest::handle(method, &path, &request);
     }
 
     // JSON-RPC binding: POST /
