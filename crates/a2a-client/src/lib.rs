@@ -4,6 +4,7 @@
 pub mod binding;
 pub mod error;
 pub mod jsonrpc;
+pub mod rest;
 pub mod sse;
 
 pub use error::{Error, JsonRpcErrorCode, ParamError, ProtocolError, Result};
