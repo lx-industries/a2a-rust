@@ -38,7 +38,7 @@ impl<T: HttpClient> Client<T> {
     /// Discover an agent by fetching its agent card.
     pub async fn discover(&self) -> Result<serde_json::Value> {
         let url = format!(
-            "{}/.well-known/agent.json",
+            "{}/.well-known/agent-card.json",
             self.base_url.trim_end_matches('/')
         );
         let request = HttpRequest::get(&url).with_header("Accept", "application/json");
