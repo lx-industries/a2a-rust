@@ -44,7 +44,8 @@ pub fn extract_interfaces(card: &AgentCard) -> Vec<(String, Binding)> {
     let mut interfaces = Vec::new();
 
     // Main URL - default to JSON-RPC, or use preferred_transport
-    let main_binding = card.preferred_transport
+    let main_binding = card
+        .preferred_transport
         .as_ref()
         .and_then(transport_to_binding)
         .unwrap_or(Binding::JsonRpc);
@@ -143,7 +144,15 @@ mod tests {
 
         let interfaces = extract_interfaces(&card);
         assert_eq!(interfaces.len(), 2); // main URL + additional
-        assert!(interfaces.iter().any(|(url, b)| url == "https://example.com/" && *b == Binding::JsonRpc));
-        assert!(interfaces.iter().any(|(url, b)| url == "https://example.com/v1" && *b == Binding::Rest));
+        assert!(
+            interfaces
+                .iter()
+                .any(|(url, b)| url == "https://example.com/" && *b == Binding::JsonRpc)
+        );
+        assert!(
+            interfaces
+                .iter()
+                .any(|(url, b)| url == "https://example.com/v1" && *b == Binding::Rest)
+        );
     }
 }

@@ -2,11 +2,13 @@
 //! A2A protocol client.
 
 pub mod binding;
+pub mod builder;
 pub mod error;
 pub mod jsonrpc;
 pub mod rest;
 pub mod sse;
 
+pub use builder::ClientBuilder;
 pub use error::{Error, JsonRpcErrorCode, ParamError, ProtocolError, Result};
 
 use a2a_transport::{HttpClient, HttpRequest};
