@@ -95,8 +95,11 @@ test:wasm-integration:
     # Run all tests for the WASM component (WASM binary from build job artifact)
     - cargo test -p a2a-wasm-component
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes: *rust-changes
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      changes: *rust-changes
+    - if: "$CI_COMMIT_TAG"
   interruptible: true
 
 # Lint jobs
