@@ -1,0 +1,17 @@
+---
+source: crates/a2a-wasm-component/tests/server_integration_test.rs
+expression: steps
+---
+[
+  {
+    "content_type": "application/json",
+    "has_capabilities": true,
+    "name": "test-wasm-agent",
+    "status_code": 200,
+    "step": "get_agent_card"
+  },
+  {
+    "step": "client_factory_connect",
+    "success": true
+  }
+]

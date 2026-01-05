@@ -1,0 +1,12 @@
+---
+source: crates/a2a-wasm-component/tests/server_integration_test.rs
+expression: steps
+---
+[
+  {
+    "error_code": -32601,
+    "has_error": true,
+    "status_code": 200,
+    "step": "invalid_method"
+  }
+]

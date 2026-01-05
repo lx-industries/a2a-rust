@@ -1,0 +1,21 @@
+---
+source: crates/a2a-wasm-component/tests/server_integration_test.rs
+expression: steps
+---
+[
+  {
+    "error": true,
+    "error_type": "TypeError",
+    "step": "get_nonexistent"
+  },
+  {
+    "error": true,
+    "error_type": "TypeError",
+    "step": "cancel_nonexistent"
+  },
+  {
+    "error_code": -32601,
+    "has_error": true,
+    "step": "invalid_method"
+  }
+]

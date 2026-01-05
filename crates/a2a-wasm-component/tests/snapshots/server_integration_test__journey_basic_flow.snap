@@ -1,0 +1,19 @@
+---
+source: crates/a2a-wasm-component/tests/server_integration_test.rs
+expression: steps
+---
+[
+  {
+    "got_task_id": true,
+    "step": "send_message"
+  },
+  {
+    "has_history": false,
+    "step": "get_task",
+    "task_id_matches": true
+  },
+  {
+    "step": "cancel_task",
+    "task_id_matches": true
+  }
+]

@@ -1,0 +1,11 @@
+---
+source: crates/a2a-wasm-component/tests/server_integration_test.rs
+expression: steps
+---
+[
+  {
+    "error": true,
+    "error_type": "TypeError",
+    "step": "get_task_not_found"
+  }
+]

@@ -1,0 +1,11 @@
+---
+source: crates/a2a-wasm-component/tests/server_integration_test.rs
+expression: steps
+---
+[
+  {
+    "has_responses": true,
+    "response_count": 1,
+    "step": "send_message"
+  }
+]
