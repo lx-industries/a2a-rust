@@ -92,8 +92,8 @@ test:wasm-integration:
   script:
     # Build the WASM component first
     - cargo build -p a2a-wasm-component --target wasm32-wasip2 --release
-    # Run integration tests (spawns Python server internally)
-    - cargo test -p a2a-wasm-component --test integration_test -- --test-threads=1
+    # Run all tests for the WASM component (requires WASM binary + Python/uv)
+    - cargo test -p a2a-wasm-component
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
