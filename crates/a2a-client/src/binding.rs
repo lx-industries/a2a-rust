@@ -30,7 +30,10 @@ pub const DEFAULT_PREFERENCE: &[Binding] = &[Binding::JsonRpc, Binding::Rest];
 
 /// Convert a protocol binding string to a Binding.
 fn protocol_binding_to_binding(protocol_binding: &str) -> Option<Binding> {
-    ProtocolBinding::from_str(protocol_binding).and_then(|pb| pb.into())
+    protocol_binding
+        .parse::<ProtocolBinding>()
+        .ok()
+        .and_then(|pb| pb.into())
 }
 
 /// Extract all available interfaces from an agent card.

@@ -101,6 +101,7 @@ impl<T: HttpClient> ClientBuilder<T> {
 }
 
 #[cfg(test)]
+#[allow(clippy::manual_async_fn)] // Mock trait impl matches HttpClient trait signature
 mod tests {
     use super::*;
     use std::pin::Pin;

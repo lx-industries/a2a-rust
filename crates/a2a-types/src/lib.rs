@@ -78,14 +78,17 @@ impl From<ProtocolBinding> for Option<Binding> {
     }
 }
 
-/// Parse a protocol binding string from the proto.
-impl ProtocolBinding {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for ProtocolBinding {
+    type Err = error::ConversionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "JSONRPC" => Some(Self::JsonRpc),
-            "HTTP+JSON" => Some(Self::Rest),
-            "GRPC" => Some(Self::Grpc),
-            _ => None,
+            "JSONRPC" => Ok(Self::JsonRpc),
+            "HTTP+JSON" => Ok(Self::Rest),
+            "GRPC" => Ok(Self::Grpc),
+            _ => Err(error::ConversionError::new(format!(
+                "unknown protocol binding: {s}"
+            ))),
         }
     }
 }
