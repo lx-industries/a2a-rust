@@ -1,0 +1,18 @@
+[project]
+name = "wasm-server-tests"
+version = "0.1.0"
+description = "Integration tests for A2A WASM server"
+requires-python = ">=3.11"
+dependencies = [
+    "a2a-sdk",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+]
+
+[tool.uv.sources]
+a2a-sdk = { git = "https://github.com/muscariello/a2a-python", branch = "a2a_proto_refactor" }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
