@@ -16,7 +16,7 @@ wit-bindgen.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
-prost-types = "0.14"
+pbjson-types = "0.9"
 
 [dev-dependencies]
 tokio = { version = "1.48", features = ["rt-multi-thread", "macros"] }
