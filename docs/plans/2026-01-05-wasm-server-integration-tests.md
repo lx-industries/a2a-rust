@@ -4,7 +4,7 @@
 
 **Goal:** Test the WASM component's HTTP server using Python A2A SDK client.
 
-**Architecture:** Rust test harness runs WASM component as HTTP server via hyper, Python client tests against it. Uses wasmtime-wasi-http pattern from their documentation.
+**Architecture:** Rust test harness runs WASM component as HTTP server via hyper, Python client tests against it. Uses wasmtime-wasi-http's recommended `A2aComponentPre` pre-instantiation pattern for efficient per-request handling.
 
 **Tech Stack:** wasmtime 29.0.1, wasmtime-wasi-http 29.0.1, hyper 1.8.1, tokio, Python a2a-sdk
 
@@ -255,11 +255,10 @@ const WASM_PATH: &str = concat!(
     "/../../target/wasm32-wasip2/release/a2a_wasm_component.wasm"
 );
 
-/// Server state shared across requests
+/// Server state shared across requests (pre-instantiated for fast per-request handling)
 struct ServerState {
     engine: Engine,
-    component: Component,
-    linker: Linker<ServerClientState>,
+    component_pre: A2aComponentPre<ServerClientState>,
     task_store: Arc<Mutex<TaskStore>>,
 }
 
@@ -359,6 +358,7 @@ async fn run_server(mut shutdown_rx: oneshot::Receiver<()>, ready_tx: oneshot::S
     let component = Component::from_file(&engine, WASM_PATH)
         .expect("Failed to load WASM component");
 
+    // Setup linker with all required interfaces
     let mut linker = Linker::<ServerClientState>::new(&engine);
     wasmtime_wasi::add_to_linker_async(&mut linker).expect("Failed to add WASI");
     wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)
@@ -366,12 +366,15 @@ async fn run_server(mut shutdown_rx: oneshot::Receiver<()>, ready_tx: oneshot::S
     a2a::protocol::agent::add_to_linker(&mut linker, |state| state)
         .expect("Failed to add agent interface");
 
+    // Pre-instantiate component (validates once, faster per-request instantiation)
+    let component_pre = A2aComponentPre::new(linker.instantiate_pre(&component).expect("Failed to pre-instantiate"))
+        .expect("Failed to create component pre");
+
     let task_store = Arc::new(Mutex::new(TaskStore::new()));
 
     let server_state = Arc::new(ServerState {
         engine,
-        component,
-        linker,
+        component_pre,
         task_store,
     });
 
@@ -421,6 +424,7 @@ async fn handle_request(
     server_state: Arc<ServerState>,
     req: Request<Incoming>,
 ) -> Result<Response<HyperOutgoingBody>, hyper::Error> {
+    // Fresh state per request
     let wasi = WasiCtxBuilder::new().inherit_env().build();
     let state = ServerClientState {
         wasi,
@@ -431,35 +435,32 @@ async fn handle_request(
 
     let mut store = Store::new(&server_state.engine, state);
 
+    // Convert hyper request to WASI HTTP types
     let (sender, receiver) = oneshot::channel();
     let incoming_req = store.data_mut().new_incoming_request(Scheme::Http, req)
         .expect("Failed to create incoming request");
     let out = store.data_mut().new_response_outparam(sender)
         .expect("Failed to create response outparam");
 
-    let instance = server_state.linker
-        .instantiate_async(&mut store, &server_state.component)
+    // Fast instantiation from pre-validated component
+    let (bindings, _instance) = server_state.component_pre
+        .instantiate_async(&mut store)
         .await
         .expect("Failed to instantiate");
 
-    // Get the incoming-handler export
-    let handler_indices = exports::wasi::http::incoming_handler::GuestIndices::new_instance(
-        &mut store,
-        &instance,
-    ).expect("Failed to get incoming-handler indices");
-    let handler = handler_indices.load(&mut store, &instance)
-        .expect("Failed to load incoming-handler");
+    // Call the component's incoming-handler export via typed bindings
+    let handler = bindings.wasi_http_incoming_handler();
 
     // Spawn the handler
     let handle_task = tokio::spawn(async move {
         handler.call_handle(&mut store, incoming_req, out).await
     });
 
+    // Response comes back through the oneshot channel
     match receiver.await {
         Ok(Ok(resp)) => Ok(resp),
         Ok(Err(e)) => {
-            // Return error response
-            let body = format!("Error: {e:?}");
+            eprintln!("Response error: {e:?}");
             Ok(Response::builder()
                 .status(500)
                 .body(HyperOutgoingBody::default())
