@@ -167,7 +167,7 @@ pub fn task_status_from_a2a(status: &a2a_types::TaskStatus) -> Result<TaskStatus
     Ok(TaskStatus {
         state: task_state_from_a2a(status.state),
         message,
-        // Convert prost_types::Timestamp to RFC 3339 string
+        // Convert pbjson_types::Timestamp to RFC 3339 string
         timestamp: status.timestamp.as_ref().map(|ts| {
             // Convert to seconds and nanos to RFC3339
             let secs = ts.seconds;
@@ -364,11 +364,11 @@ pub fn task_from_wit(task: &Task) -> a2a_types::Task {
 /// Convert WIT TaskStatus to a2a-types TaskStatus struct.
 fn task_status_to_a2a_struct(status: &TaskStatus) -> a2a_types::TaskStatus {
     let message = status.message.as_ref().map(message_to_a2a_clone);
-    // Parse RFC 3339 timestamp string to prost_types::Timestamp
+    // Parse RFC 3339 timestamp string to pbjson_types::Timestamp
     let timestamp = status.timestamp.as_ref().and_then(|ts| {
         chrono::DateTime::parse_from_rfc3339(ts).ok().map(|dt| {
             let dt_utc = dt.with_timezone(&chrono::Utc);
-            prost_types::Timestamp {
+            pbjson_types::Timestamp {
                 seconds: dt_utc.timestamp(),
                 nanos: dt_utc.timestamp_subsec_nanos() as i32,
             }
