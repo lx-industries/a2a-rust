@@ -106,7 +106,7 @@ impl<T: HttpClient> Client<T> {
         url: &str,
         params: a2a_types::SendMessageRequest,
     ) -> Result<a2a_types::SendMessageResponse> {
-        let request = jsonrpc::JsonRpcRequest::new(self.next_id(), "message/send", &params);
+        let request = jsonrpc::JsonRpcRequest::new(self.next_id(), "SendMessage", &params);
         let body = serde_json::to_vec(&request)?;
 
         let http_request = HttpRequest::post(url, body)
@@ -196,7 +196,7 @@ impl<T: HttpClient> Client<T> {
 
         let request = jsonrpc::JsonRpcRequest::new(
             self.next_id(),
-            "tasks/get",
+            "GetTask",
             Params {
                 id: task_id.as_str(),
                 history_length,
@@ -291,7 +291,7 @@ impl<T: HttpClient> Client<T> {
 
         let request = jsonrpc::JsonRpcRequest::new(
             self.next_id(),
-            "tasks/cancel",
+            "CancelTask",
             Params {
                 id: task_id.as_str(),
             },

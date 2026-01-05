@@ -49,10 +49,10 @@ mod tests {
 
     #[test]
     fn test_serialize_request() {
-        let req = JsonRpcRequest::new("1", "message/send", serde_json::json!({"content": "hello"}));
+        let req = JsonRpcRequest::new("1", "SendMessage", serde_json::json!({"content": "hello"}));
         let json = serde_json::to_string(&req).unwrap();
         assert!(json.contains("\"jsonrpc\":\"2.0\""));
-        assert!(json.contains("\"method\":\"message/send\""));
+        assert!(json.contains("\"method\":\"SendMessage\""));
     }
 
     #[test]
