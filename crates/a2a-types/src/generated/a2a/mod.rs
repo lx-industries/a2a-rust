@@ -1,4 +1,4 @@
-mod v1;
+pub mod v1;
 pub use v1::*;
 
 // pbjson-generated serde implementations (proto3 JSON compliant)
