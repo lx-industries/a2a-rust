@@ -107,6 +107,7 @@ struct ServerState {
     component: Component,
     linker: Linker<ServerClientState>,
     task_store: Arc<Mutex<TaskStore>>,
+    port: u16,
 }
 
 /// Per-request state
@@ -115,6 +116,7 @@ struct ServerClientState {
     http: WasiHttpCtx,
     table: ResourceTable,
     task_store: Arc<Mutex<TaskStore>>,
+    port: u16,
 }
 
 impl WasiView for ServerClientState {
@@ -137,7 +139,8 @@ impl WasiHttpView for ServerClientState {
 
 impl AgentHost for ServerClientState {
     async fn get_agent_card(&mut self, _tenant: Option<String>) -> Result<String, A2aError> {
-        Ok(r#"{"name":"test-wasm-agent","description":"Test WASM agent","url":"http://localhost:9998","version":"1.0.0","capabilities":{},"defaultInputModes":["text"],"defaultOutputModes":["text"],"skills":[]}"#.to_string())
+        let port = self.port;
+        Ok(format!(r#"{{"name":"test-wasm-agent","description":"Test WASM agent","url":"http://localhost:{}","version":"1.0.0","capabilities":{{}},"defaultInputModes":["text"],"defaultOutputModes":["text"],"skills":[]}}"#, port))
     }
 
     async fn on_message(&mut self, _tenant: Option<String>, params: MessageSendParams) -> Result<SendResponse, A2aError> {
@@ -171,22 +174,22 @@ pub struct WasmServer {
 }
 
 impl WasmServer {
-    /// Start the WASM server on port 9998.
+    /// Start the WASM server on a dynamic port.
     pub async fn start() -> Self {
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
-        let (ready_tx, ready_rx) = oneshot::channel();
+        let (ready_tx, ready_rx) = oneshot::channel::<u16>();
 
         let handle = tokio::spawn(async move {
             run_server(shutdown_rx, ready_tx).await;
         });
 
-        // Wait for server to be ready
-        ready_rx.await.expect("Server failed to start");
+        // Wait for server to be ready and get the assigned port
+        let port = ready_rx.await.expect("Server failed to start");
 
         Self {
             shutdown_tx: Some(shutdown_tx),
             handle,
-            url: "http://localhost:9998".to_string(),
+            url: format!("http://localhost:{}", port),
         }
     }
 }
@@ -200,7 +203,7 @@ impl Drop for WasmServer {
     }
 }
 
-async fn run_server(mut shutdown_rx: oneshot::Receiver<()>, ready_tx: oneshot::Sender<()>) {
+async fn run_server(mut shutdown_rx: oneshot::Receiver<()>, ready_tx: oneshot::Sender<u16>) {
     // Setup wasmtime engine and component
     let mut config = Config::new();
     config.async_support(true);
@@ -220,19 +223,21 @@ async fn run_server(mut shutdown_rx: oneshot::Receiver<()>, ready_tx: oneshot::S
 
     let task_store = Arc::new(Mutex::new(TaskStore::new()));
 
+    // Bind to port 0 (OS assigns free port)
+    let addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
+    let listener = TcpListener::bind(addr).await.expect("Failed to bind");
+    let port = listener.local_addr().expect("Failed to get local addr").port();
+
     let server_state = Arc::new(ServerState {
         engine,
         component,
         linker,
         task_store,
+        port,
     });
 
-    // Bind to port 9998
-    let addr: SocketAddr = "127.0.0.1:9998".parse().unwrap();
-    let listener = TcpListener::bind(addr).await.expect("Failed to bind");
-
-    // Signal that we're ready
-    let _ = ready_tx.send(());
+    // Signal that we're ready with the assigned port
+    let _ = ready_tx.send(port);
 
     loop {
         tokio::select! {
@@ -280,6 +285,7 @@ async fn handle_request(
         http: WasiHttpCtx::new(),
         table: ResourceTable::new(),
         task_store: server_state.task_store.clone(),
+        port: server_state.port,
     };
 
     let mut store = Store::new(&server_state.engine, state);
