@@ -114,10 +114,10 @@ fn handle_jsonrpc(body: &[u8]) -> Result<(u16, &'static str, Vec<u8>), (u16, Str
 
     // Route to handler
     let response = match request.method.as_str() {
-        "message/send" => handle_message_send(&request),
-        "tasks/get" => handle_tasks_get(&request),
-        "tasks/cancel" => handle_tasks_cancel(&request),
-        "message/stream" | "tasks/resubscribe" => {
+        "SendMessage" => handle_message_send(&request),
+        "GetTask" => handle_tasks_get(&request),
+        "CancelTask" => handle_tasks_cancel(&request),
+        "SendStreamingMessage" | "SubscribeToTask" => {
             Response::error(request.id.clone(), -32601, "Streaming not implemented")
         }
         _ => Response::method_not_found(request.id.clone()),
