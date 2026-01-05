@@ -42,9 +42,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let descriptor_bytes = file_descriptors.encode_to_vec();
 
     // Generate pbjson serde implementations (proto3 JSON compliant)
+    // Use ignore_unknown_fields for forward compatibility with agents that
+    // have additional fields not yet in our proto definition.
     pbjson_build::Builder::new()
         .register_descriptors(&descriptor_bytes)?
         .out_dir(&out_dir)
+        .ignore_unknown_fields()
         .build(&[".a2a.v1"])?;
 
     // Rename a2a.v1.serde.rs to v1.serde.rs
