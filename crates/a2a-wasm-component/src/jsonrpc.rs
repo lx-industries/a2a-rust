@@ -142,7 +142,14 @@ fn handle_message_send(request: &Request) -> Response {
         Err(e) => return Response::invalid_params(request.id.clone(), e),
     };
 
-    match agent::on_message(&wit_params) {
+    // Extract tenant from params (empty string means no tenant)
+    let tenant = if params.tenant.is_empty() {
+        None
+    } else {
+        Some(params.tenant.as_str())
+    };
+
+    match agent::on_message(tenant, &wit_params) {
         Ok(response) => {
             let a2a_response = convert::send_response_from_wit(&response);
             Response::success(request.id.clone(), a2a_response)
@@ -154,19 +161,23 @@ fn handle_message_send(request: &Request) -> Response {
 fn handle_tasks_get(request: &Request) -> Response {
     use crate::a2a::protocol::agent;
 
-    #[derive(serde::Deserialize)]
-    struct Params {
-        id: String,
-        #[serde(rename = "historyLength")]
-        history_length: Option<u32>,
-    }
-
-    let params: Params = match serde_json::from_value(request.params.clone()) {
+    // Use a2a-types GetTaskRequest for consistency with protobuf
+    let params: a2a_types::GetTaskRequest = match serde_json::from_value(request.params.clone()) {
         Ok(p) => p,
         Err(e) => return Response::invalid_params(request.id.clone(), e.to_string()),
     };
 
-    match agent::on_get_task(&params.id, params.history_length) {
+    // Extract tenant from params (empty string means no tenant)
+    let tenant = if params.tenant.is_empty() {
+        None
+    } else {
+        Some(params.tenant.as_str())
+    };
+
+    // Convert i32 to u32 for WIT compatibility (protobuf uses i32, WIT uses u32)
+    let history_length = params.history_length.map(|v| v as u32);
+
+    match agent::on_get_task(tenant, &params.name, history_length) {
         Ok(Some(task)) => {
             let a2a_task = convert::task_from_wit(&task);
             Response::success(request.id.clone(), a2a_task)
@@ -179,17 +190,20 @@ fn handle_tasks_get(request: &Request) -> Response {
 fn handle_tasks_cancel(request: &Request) -> Response {
     use crate::a2a::protocol::agent;
 
-    #[derive(serde::Deserialize)]
-    struct Params {
-        id: String,
-    }
-
-    let params: Params = match serde_json::from_value(request.params.clone()) {
+    // Use a2a-types CancelTaskRequest for consistency with protobuf
+    let params: a2a_types::CancelTaskRequest = match serde_json::from_value(request.params.clone()) {
         Ok(p) => p,
         Err(e) => return Response::invalid_params(request.id.clone(), e.to_string()),
     };
 
-    match agent::on_cancel_task(&params.id) {
+    // Extract tenant from params (empty string means no tenant)
+    let tenant = if params.tenant.is_empty() {
+        None
+    } else {
+        Some(params.tenant.as_str())
+    };
+
+    match agent::on_cancel_task(tenant, &params.name) {
         Ok(Some(task)) => {
             let a2a_task = convert::task_from_wit(&task);
             Response::success(request.id.clone(), a2a_task)

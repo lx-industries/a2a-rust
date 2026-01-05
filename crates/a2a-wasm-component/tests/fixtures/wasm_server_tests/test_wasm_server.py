@@ -6,7 +6,7 @@ from a2a.client import Client
 from a2a.client.client_factory import ClientFactory, ClientConfig
 from a2a.types import (
     Message,
-    TextPart,
+    Part,
     Role,
     GetTaskRequest,
     CancelTaskRequest,
@@ -46,8 +46,8 @@ class TestSendMessage:
     async def test_send_message_returns_response(self, a2a_client: Client):
         """SendMessage returns a task or message response."""
         message = Message(
-            role=Role.user,
-            parts=[TextPart(text="Hello from Python SDK")],
+            role=Role.ROLE_USER,
+            parts=[Part(text="Hello from Python SDK")],
         )
 
         # send_message returns an async iterator of (StreamResponse, Task | None)
@@ -61,8 +61,8 @@ class TestSendMessage:
     async def test_send_message_creates_task(self, a2a_client: Client):
         """SendMessage creates a task that can be retrieved."""
         message = Message(
-            role=Role.user,
-            parts=[TextPart(text="Hello")],
+            role=Role.ROLE_USER,
+            parts=[Part(text="Hello")],
         )
 
         task_id = None
@@ -73,7 +73,7 @@ class TestSendMessage:
 
         # If we got a task, we should be able to get it
         if task_id:
-            request = GetTaskRequest(id=task_id)
+            request = GetTaskRequest(name=task_id)
             retrieved_task = await a2a_client.get_task(request)
             assert retrieved_task.id == task_id
 
@@ -83,7 +83,7 @@ class TestGetTask:
 
     async def test_get_task_not_found(self, a2a_client: Client):
         """GetTask for non-existent task raises error or returns None."""
-        request = GetTaskRequest(id="non-existent-task-id")
+        request = GetTaskRequest(name="non-existent-task-id")
 
         # SDK may raise an exception for not found
         try:
@@ -98,8 +98,8 @@ class TestGetTask:
         """GetTask returns task created by SendMessage."""
         # First create a task
         message = Message(
-            role=Role.user,
-            parts=[TextPart(text="Hello")],
+            role=Role.ROLE_USER,
+            parts=[Part(text="Hello")],
         )
 
         task_id = None
@@ -111,7 +111,7 @@ class TestGetTask:
         assert task_id is not None, "Expected to get a task from send_message"
 
         # Now get the task
-        request = GetTaskRequest(id=task_id)
+        request = GetTaskRequest(name=task_id)
         retrieved_task = await a2a_client.get_task(request)
         assert retrieved_task.id == task_id
 
@@ -121,7 +121,7 @@ class TestCancelTask:
 
     async def test_cancel_task_not_found(self, a2a_client: Client):
         """CancelTask for non-existent task raises error or returns None."""
-        request = CancelTaskRequest(id="non-existent-task-id")
+        request = CancelTaskRequest(name="non-existent-task-id")
 
         try:
             task = await a2a_client.cancel_task(request)
@@ -135,8 +135,8 @@ class TestCancelTask:
         """CancelTask cancels a task created by SendMessage."""
         # First create a task
         message = Message(
-            role=Role.user,
-            parts=[TextPart(text="Hello")],
+            role=Role.ROLE_USER,
+            parts=[Part(text="Hello")],
         )
 
         task_id = None
@@ -148,7 +148,7 @@ class TestCancelTask:
         assert task_id is not None, "Expected to get a task from send_message"
 
         # Now cancel the task
-        request = CancelTaskRequest(id=task_id)
+        request = CancelTaskRequest(name=task_id)
         cancelled_task = await a2a_client.cancel_task(request)
         assert cancelled_task.id == task_id
 

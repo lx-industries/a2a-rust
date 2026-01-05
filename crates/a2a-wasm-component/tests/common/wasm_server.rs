@@ -22,10 +22,17 @@ use wasmtime_wasi_http::io::TokioIo;
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 // Generate bindings for the a2a:protocol world from the WIT file.
+// Use `with` to reuse wasmtime_wasi_http's types instead of generating new ones.
 wasmtime::component::bindgen!({
     world: "a2a-component",
     path: "wit",
     async: true,
+    with: {
+        "wasi:http/types": wasmtime_wasi_http::bindings::http::types,
+        "wasi:io/error": wasmtime_wasi_http::bindings::io::error,
+        "wasi:io/streams": wasmtime_wasi_http::bindings::io::streams,
+        "wasi:io/poll": wasmtime_wasi_http::bindings::io::poll,
+    },
 });
 
 // Use types from this module's bindgen
@@ -129,25 +136,30 @@ impl WasiHttpView for ServerClientState {
 }
 
 impl AgentHost for ServerClientState {
-    async fn get_agent_card(&mut self) -> Result<String, A2aError> {
+    async fn get_agent_card(&mut self, _tenant: Option<String>) -> Result<String, A2aError> {
         Ok(r#"{"name":"test-wasm-agent","description":"Test WASM agent","url":"http://localhost:9998","version":"1.0.0","capabilities":{},"defaultInputModes":["text"],"defaultOutputModes":["text"],"skills":[]}"#.to_string())
     }
 
-    async fn on_message(&mut self, params: MessageSendParams) -> Result<SendResponse, A2aError> {
+    async fn on_message(&mut self, _tenant: Option<String>, params: MessageSendParams) -> Result<SendResponse, A2aError> {
         let task = self.task_store.lock().unwrap().create_task(&params.message);
         Ok(SendResponse::Task(task))
     }
 
     async fn on_get_task(
         &mut self,
-        id: String,
+        _tenant: Option<String>,
+        name: String,
         _history_length: Option<u32>,
     ) -> Result<Option<Task>, A2aError> {
-        Ok(self.task_store.lock().unwrap().get_task(&id))
+        // name is resource name in format "tasks/{task_id}", extract the task_id
+        let task_id = name.strip_prefix("tasks/").unwrap_or(&name);
+        Ok(self.task_store.lock().unwrap().get_task(task_id))
     }
 
-    async fn on_cancel_task(&mut self, id: String) -> Result<Option<Task>, A2aError> {
-        Ok(self.task_store.lock().unwrap().cancel_task(&id))
+    async fn on_cancel_task(&mut self, _tenant: Option<String>, name: String) -> Result<Option<Task>, A2aError> {
+        // name is resource name in format "tasks/{task_id}", extract the task_id
+        let task_id = name.strip_prefix("tasks/").unwrap_or(&name);
+        Ok(self.task_store.lock().unwrap().cancel_task(task_id))
     }
 }
 
@@ -279,19 +291,14 @@ async fn handle_request(
     let out = store.data_mut().new_response_outparam(sender)
         .expect("Failed to create response outparam");
 
-    // Use wasmtime_wasi_http::proxy module for proper type integration
-    let proxy = wasmtime_wasi_http::bindings::ProxyPre::new(
-        server_state.linker.instantiate_pre(&server_state.component)
-            .expect("Failed to pre-instantiate")
-    ).expect("Failed to create proxy pre");
+    // Instantiate the component using our own bindgen's A2aComponent
+    let bindings = A2aComponent::instantiate_async(&mut store, &server_state.component, &server_state.linker)
+        .await
+        .expect("Failed to instantiate component");
 
-    // Spawn the handler in a task (following wasmtime-wasi-http example pattern)
+    // Spawn the handler in a task
     let handle_task = tokio::spawn(async move {
-        let proxy = proxy.instantiate_async(&mut store).await
-            .expect("Failed to instantiate proxy");
-
-        // Call the incoming-handler export via the proxy bindings
-        proxy
+        bindings
             .wasi_http_incoming_handler()
             .call_handle(store, incoming_req, out)
             .await

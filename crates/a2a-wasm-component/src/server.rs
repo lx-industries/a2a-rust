@@ -59,7 +59,8 @@ fn handle_request(request: IncomingRequest) -> Result<(u16, &'static str, Vec<u8
 fn handle_agent_card() -> Result<(u16, &'static str, Vec<u8>), (u16, String)> {
     use crate::a2a::protocol::agent;
 
-    match agent::get_agent_card() {
+    // TODO: Extract tenant from URL path for multi-tenancy support
+    match agent::get_agent_card(None) {
         Ok(card_json) => Ok((200, "application/json", card_json.into_bytes())),
         Err(e) => {
             let response = jsonrpc::Response::internal_error(serde_json::Value::Null, e.message);

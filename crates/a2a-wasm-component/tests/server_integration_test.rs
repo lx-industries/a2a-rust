@@ -12,7 +12,7 @@
 mod common;
 
 use common::wasm_server::WasmServer;
-use std::process::Command;
+use tokio::process::Command;
 
 const FIXTURES_DIR: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -26,12 +26,13 @@ async fn test_wasm_server_with_python_client() {
     let server = WasmServer::start().await;
     println!("WASM server started at {}", server.url);
 
-    // Run Python tests
+    // Run Python tests - must use tokio::process::Command to avoid blocking the runtime
     let status = Command::new("uv")
         .args(["run", "pytest", "-v", "--tb=short"])
         .current_dir(FIXTURES_DIR)
         .env("WASM_SERVER_URL", &server.url)
         .status()
+        .await
         .expect("Failed to run pytest - is uv installed?");
 
     assert!(status.success(), "Python tests failed");

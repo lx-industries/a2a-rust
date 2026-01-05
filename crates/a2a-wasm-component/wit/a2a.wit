@@ -143,17 +143,19 @@ interface client {
         params: message-send-params
     ) -> result<send-response, error>;
 
-    /// Get a task by ID (JSON-RPC: tasks/get)
+    /// Get a task by resource name (JSON-RPC: tasks/get)
+    /// name: Resource name in format "tasks/{task_id}"
     get-task: func(
         agent-url: string,
-        id: string,
+        name: string,
         history-length: option<u32>
     ) -> result<option<task>, error>;
 
-    /// Cancel a task (JSON-RPC: tasks/cancel)
+    /// Cancel a task by resource name (JSON-RPC: tasks/cancel)
+    /// name: Resource name in format "tasks/{task_id}"
     cancel-task: func(
         agent-url: string,
-        id: string
+        name: string
     ) -> result<option<task>, error>;
 }
 
@@ -164,13 +166,18 @@ interface server {
     use types.{task, message-send-params, send-response, error};
 
     /// Handle incoming message/send request
-    on-message: func(params: message-send-params) -> result<send-response, error>;
+    /// tenant: Optional tenant identifier for multi-tenancy
+    on-message: func(tenant: option<string>, params: message-send-params) -> result<send-response, error>;
 
     /// Handle incoming tasks/get request
-    on-get-task: func(id: string, history-length: option<u32>) -> result<option<task>, error>;
+    /// tenant: Optional tenant identifier for multi-tenancy
+    /// name: Resource name in format "tasks/{task_id}"
+    on-get-task: func(tenant: option<string>, name: string, history-length: option<u32>) -> result<option<task>, error>;
 
     /// Handle incoming tasks/cancel request
-    on-cancel-task: func(id: string) -> result<option<task>, error>;
+    /// tenant: Optional tenant identifier for multi-tenancy
+    /// name: Resource name in format "tasks/{task_id}"
+    on-cancel-task: func(tenant: option<string>, name: string) -> result<option<task>, error>;
 }
 
 /// Agent interface imported from host - provides actual agent logic
@@ -178,16 +185,22 @@ interface agent {
     use types.{task, message-send-params, send-response, error};
 
     /// Get agent card as JSON string
-    get-agent-card: func() -> result<string, error>;
+    /// tenant: Optional tenant identifier for multi-tenancy
+    get-agent-card: func(tenant: option<string>) -> result<string, error>;
 
     /// Process incoming message (blocking)
-    on-message: func(params: message-send-params) -> result<send-response, error>;
+    /// tenant: Optional tenant identifier for multi-tenancy
+    on-message: func(tenant: option<string>, params: message-send-params) -> result<send-response, error>;
 
-    /// Retrieve task by ID
-    on-get-task: func(id: string, history-length: option<u32>) -> result<option<task>, error>;
+    /// Retrieve task by resource name
+    /// tenant: Optional tenant identifier for multi-tenancy
+    /// name: Resource name in format "tasks/{task_id}"
+    on-get-task: func(tenant: option<string>, name: string, history-length: option<u32>) -> result<option<task>, error>;
 
-    /// Handle cancellation
-    on-cancel-task: func(id: string) -> result<option<task>, error>;
+    /// Handle task cancellation
+    /// tenant: Optional tenant identifier for multi-tenancy
+    /// name: Resource name in format "tasks/{task_id}"
+    on-cancel-task: func(tenant: option<string>, name: string) -> result<option<task>, error>;
 }
 
 world a2a-component {

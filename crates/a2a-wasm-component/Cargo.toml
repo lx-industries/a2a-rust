@@ -19,7 +19,7 @@ chrono.workspace = true
 pbjson-types = "0.9"
 
 [dev-dependencies]
-tokio = { version = "1.48", features = ["rt-multi-thread", "macros", "net"] }
+tokio = { version = "1.48", features = ["rt-multi-thread", "macros", "net", "process"] }
 wasmtime = "29"
 wasmtime-wasi = "29"
 wasmtime-wasi-http = "29"

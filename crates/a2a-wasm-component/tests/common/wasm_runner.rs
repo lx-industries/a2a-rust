@@ -64,12 +64,12 @@ impl WasiHttpView for TestState {
 /// interface to talk to external servers.
 impl AgentHost for TestState {
     /// Get agent card as JSON string
-    async fn get_agent_card(&mut self) -> Result<String, A2aError> {
+    async fn get_agent_card(&mut self, _tenant: Option<String>) -> Result<String, A2aError> {
         Ok(r#"{"name": "test-agent", "capabilities": {}}"#.to_string())
     }
 
     /// Process incoming message (blocking) - returns a simple echo response
-    async fn on_message(&mut self, params: MessageSendParams) -> Result<SendResponse, A2aError> {
+    async fn on_message(&mut self, _tenant: Option<String>, params: MessageSendParams) -> Result<SendResponse, A2aError> {
         // Extract text from the first part of the message for echoing
         let echo_text = params
             .message
@@ -106,17 +106,18 @@ impl AgentHost for TestState {
         Ok(SendResponse::Task(task))
     }
 
-    /// Retrieve task by ID - returns None (task not found)
+    /// Retrieve task by resource name - returns None (task not found)
     async fn on_get_task(
         &mut self,
-        _id: String,
+        _tenant: Option<String>,
+        _name: String,
         _history_length: Option<u32>,
     ) -> Result<Option<Task>, A2aError> {
         Ok(None)
     }
 
     /// Handle cancellation - returns None (task not found)
-    async fn on_cancel_task(&mut self, _id: String) -> Result<Option<Task>, A2aError> {
+    async fn on_cancel_task(&mut self, _tenant: Option<String>, _name: String) -> Result<Option<Task>, A2aError> {
         Ok(None)
     }
 }

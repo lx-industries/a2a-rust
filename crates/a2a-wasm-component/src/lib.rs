@@ -60,17 +60,17 @@ impl client_exports::Guest for Component {
 
     fn get_task(
         agent_url: String,
-        id: String,
+        name: String,
         history_length: Option<u32>,
     ) -> Result<Option<client_exports::Task>, client_exports::Error> {
-        client::get_task(agent_url, id, history_length)
+        client::get_task(agent_url, name, history_length)
     }
 
     fn cancel_task(
         agent_url: String,
-        id: String,
+        name: String,
     ) -> Result<Option<client_exports::Task>, client_exports::Error> {
-        client::cancel_task(agent_url, id)
+        client::cancel_task(agent_url, name)
     }
 }
 

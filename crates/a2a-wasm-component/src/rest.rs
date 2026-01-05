@@ -93,7 +93,14 @@ fn handle_send_message(
     let wit_params = convert::message_send_params_to_wit(&params)
         .map_err(|e| (400, format!("Invalid params: {e}")))?;
 
-    match agent::on_message(&wit_params) {
+    // Extract tenant from params (empty string means no tenant)
+    let tenant = if params.tenant.is_empty() {
+        None
+    } else {
+        Some(params.tenant.as_str())
+    };
+
+    match agent::on_message(tenant, &wit_params) {
         Ok(response) => {
             let a2a_response = convert::send_response_from_wit(&response);
             let body = serde_json::to_vec(&a2a_response).unwrap_or_default();
@@ -112,7 +119,11 @@ fn handle_get_task(
 ) -> Result<(u16, &'static str, Vec<u8>), (u16, String)> {
     use crate::a2a::protocol::agent;
 
-    match agent::on_get_task(task_id, history_length) {
+    // Construct resource name from task ID per A2A spec
+    let name = format!("tasks/{task_id}");
+
+    // TODO: Extract tenant from request headers or path for multi-tenancy
+    match agent::on_get_task(None, &name, history_length) {
         Ok(Some(task)) => {
             let a2a_task = convert::task_from_wit(&task);
             let body = serde_json::to_vec(&a2a_task).unwrap_or_default();
@@ -135,7 +146,11 @@ fn handle_get_task(
 fn handle_cancel_task(task_id: &str) -> Result<(u16, &'static str, Vec<u8>), (u16, String)> {
     use crate::a2a::protocol::agent;
 
-    match agent::on_cancel_task(task_id) {
+    // Construct resource name from task ID per A2A spec
+    let name = format!("tasks/{task_id}");
+
+    // TODO: Extract tenant from request headers or path for multi-tenancy
+    match agent::on_cancel_task(None, &name) {
         Ok(Some(task)) => {
             let a2a_task = convert::task_from_wit(&task);
             let body = serde_json::to_vec(&a2a_task).unwrap_or_default();
@@ -160,7 +175,8 @@ fn handle_extended_agent_card() -> Result<(u16, &'static str, Vec<u8>), (u16, St
 
     // For now, return the same card as the public one
     // In the future, this could return additional authenticated details
-    match agent::get_agent_card() {
+    // TODO: Extract tenant from request headers or path for multi-tenancy
+    match agent::get_agent_card(None) {
         Ok(card_json) => Ok((200, "application/json", card_json.into_bytes())),
         Err(e) => {
             let body = serde_json::to_vec(&ErrorResponse { error: e.message }).unwrap_or_default();
