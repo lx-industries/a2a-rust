@@ -6,11 +6,13 @@ license.workspace = true
 
 [dependencies]
 prost = "0.14"
-prost-types = "0.14"
+pbjson = "0.9"
+pbjson-types = "0.9"
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 
 [build-dependencies]
 prost-build = "0.14"
+pbjson-build = "0.9"
 protox = "0.9"
