@@ -84,7 +84,7 @@ pub fn send_message(agent_url: String, params: MessageSendParams) -> Result<Send
 
     // Make the RPC call
     let result: Result<a2a_types::SendMessageResponse, _> =
-        block_on(client.rpc("message/send", &a2a_params));
+        block_on(client.rpc("SendMessage", &a2a_params));
 
     match result {
         Ok(response) => {
@@ -118,7 +118,7 @@ pub fn get_task(
     let client = block_on(Client::connect(http_client, &agent_url)).map_err(map_client_error)?;
 
     // Make the RPC call
-    let result: Result<a2a_types::Task, _> = block_on(client.rpc("tasks/get", &params));
+    let result: Result<a2a_types::Task, _> = block_on(client.rpc("GetTask", &params));
 
     match result {
         Ok(task) => {
@@ -160,7 +160,7 @@ pub fn cancel_task(agent_url: String, id: String) -> Result<Option<Task>, Error>
     let client = block_on(Client::connect(http_client, &agent_url)).map_err(map_client_error)?;
 
     // Make the RPC call
-    let result: Result<a2a_types::Task, _> = block_on(client.rpc("tasks/cancel", &params));
+    let result: Result<a2a_types::Task, _> = block_on(client.rpc("CancelTask", &params));
 
     match result {
         Ok(task) => {
