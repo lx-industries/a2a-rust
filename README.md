@@ -17,6 +17,58 @@ a2a-rust provides a complete toolkit for building A2A-compatible agents in Rust:
 
 The WASM component can be deployed with [Wassette](https://github.com/microsoft/wassette) to expose A2A as an MCP server. This enables LLMs with MCP support (Claude, etc.) to discover and interact with any A2A-compatible agent—bridging the Model Context Protocol and Agent-to-Agent worlds.
 
+**Architecture layers:**
+
+```mermaid
+graph TB
+    subgraph LLM["LLM Environment"]
+        Claude
+        GPT
+        Gemini
+    end
+
+    subgraph MCP["MCP Layer"]
+        MCPProtocol[MCP Protocol]
+    end
+
+    subgraph Bridge
+        Wassette
+        WASMComponent[a2a-wasm-component]
+    end
+
+    subgraph A2A["A2A Layer"]
+        A2AProtocol[A2A Protocol]
+        AgentA[Agent A]
+        AgentB[Agent B]
+    end
+
+    Claude --> MCPProtocol
+    GPT --> MCPProtocol
+    Gemini --> MCPProtocol
+    MCPProtocol --> Wassette
+    Wassette --> WASMComponent
+    WASMComponent --> A2AProtocol
+    A2AProtocol --> AgentA
+    A2AProtocol --> AgentB
+```
+
+**Request flow:**
+
+```mermaid
+sequenceDiagram
+    participant LLM
+    participant Wassette
+    participant WASM as a2a-wasm-component
+    participant Agent as A2A Agent
+
+    LLM->>Wassette: MCP tool: send-message
+    Wassette->>WASM: WIT call
+    WASM->>Agent: A2A message/send
+    Agent-->>WASM: Task or Message
+    WASM-->>Wassette: WIT response
+    Wassette-->>LLM: MCP response
+```
+
 ## Architecture
 
 The library is organized as a Cargo workspace with six crates:
