@@ -56,8 +56,12 @@ build:wasm32-wasip2:
   image: registry.gitlab.com/lx-industries/a2a-rust/rust/wasm32-wasip2:1.92.0@sha256:5056a36708818371ac2ed1c6874d89c4b2e52ce1ec0852b9f0cbb261abca1e8d
   stage: build
   script:
-    - cargo build -p a2a-transport-wasi -p a2a-wasm-component --target wasm32-wasip2 --verbose
+    - cargo build -p a2a-transport-wasi -p a2a-wasm-component --target wasm32-wasip2 --release --verbose
     - sccache --show-stats || true
+  artifacts:
+    paths:
+      - target/wasm32-wasip2/release/a2a_wasm_component.wasm
+    expire_in: 1 day
 
 # Test jobs
 cargo-test:
@@ -81,18 +85,14 @@ cargo-doc-test:
 test:wasm-integration:
   stage: test
   image: rust:1.92.0
-  variables:
-    WASM_TARGET: wasm32-wasip2
+  needs:
+    - build:wasm32-wasip2
   before_script:
     # Install uv for Python
     - curl -LsSf https://astral.sh/uv/install.sh | sh
     - source $HOME/.local/bin/env
-    # Install WASM target
-    - rustup target add wasm32-wasip2
   script:
-    # Build the WASM component first
-    - cargo build -p a2a-wasm-component --target wasm32-wasip2 --release
-    # Run all tests for the WASM component (requires WASM binary + Python/uv)
+    # Run all tests for the WASM component (WASM binary from build job artifact)
     - cargo test -p a2a-wasm-component
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
