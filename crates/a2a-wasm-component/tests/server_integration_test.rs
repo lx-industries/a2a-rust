@@ -20,16 +20,16 @@ const SCENARIOS_DIR: &str = concat!(
     "/tests/fixtures/wasm_server_tests/scenarios"
 );
 
-#[test_case("agent_card_discovery")]
-#[test_case("send_message_success")]
-#[test_case("send_message_creates_task")]
-#[test_case("get_task_not_found")]
-#[test_case("get_task_after_send")]
-#[test_case("cancel_task_not_found")]
-#[test_case("cancel_task_success")]
-#[test_case("json_rpc_invalid_method")]
-#[test_case("journey_basic_flow")]
-#[test_case("journey_error_handling")]
+#[test_case("agent_card_discovery" ; "agent_card_discovery")]
+#[test_case("send_message_success" ; "send_message_success")]
+#[test_case("send_message_creates_task" ; "send_message_creates_task")]
+#[test_case("get_task_not_found" ; "get_task_not_found")]
+#[test_case("get_task_after_send" ; "get_task_after_send")]
+#[test_case("cancel_task_not_found" ; "cancel_task_not_found")]
+#[test_case("cancel_task_success" ; "cancel_task_success")]
+#[test_case("json_rpc_invalid_method" ; "json_rpc_invalid_method")]
+#[test_case("journey_basic_flow" ; "journey_basic_flow")]
+#[test_case("journey_error_handling" ; "journey_error_handling")]
 fn test_scenario(scenario: &str) {
     // Start the WASM server using tokio runtime
     let rt = tokio::runtime::Runtime::new().unwrap();
