@@ -3,6 +3,8 @@
 //! This module provides a test harness that loads the compiled A2A WASM component
 //! and calls its exported functions using wasmtime's component model.
 
+use std::collections::HashMap;
+
 use serde_json::{Value, json};
 use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store};
@@ -24,11 +26,67 @@ wasmtime::component::bindgen!({
 });
 
 // Re-export types from the generated bindings for convenience
-use a2a::protocol::agent::Host as AgentHost;
-use a2a::protocol::types::{
+pub use a2a::protocol::agent::Host as AgentHost;
+pub use a2a::protocol::types::{
     Error as A2aError, Message, MessageSendParams, Part, Role, SendResponse, Task, TaskState,
     TaskStatus, TextPart,
 };
+
+// Re-export bindgen-generated types for use by wasm_server
+pub use exports::wasi::http::incoming_handler::Guest as IncomingHandlerGuest;
+
+/// Shared task storage for stateful mock agent.
+///
+/// Used by WasmServer to maintain task state across requests.
+#[derive(Default)]
+pub struct TaskStore {
+    tasks: HashMap<String, Task>,
+}
+
+impl TaskStore {
+    pub fn new() -> Self {
+        Self { tasks: HashMap::new() }
+    }
+
+    pub fn create_task(&mut self, message: &Message) -> Task {
+        let id = uuid::Uuid::new_v4().to_string();
+        let context_id = message.context_id.clone()
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+
+        let task = Task {
+            id: id.clone(),
+            context_id,
+            status: TaskStatus {
+                state: TaskState::Completed,
+                message: Some(Message {
+                    role: Role::Agent,
+                    parts: vec![Part::Text(TextPart { text: "Hello World".to_string() })],
+                    message_id: Some(uuid::Uuid::new_v4().to_string()),
+                    task_id: Some(id.clone()),
+                    context_id: None,
+                }),
+                timestamp: Some(chrono::Utc::now().to_rfc3339()),
+            },
+            history: None,
+            artifacts: None,
+        };
+
+        self.tasks.insert(id, task.clone());
+        task
+    }
+
+    pub fn get_task(&self, id: &str) -> Option<Task> {
+        self.tasks.get(id).cloned()
+    }
+
+    pub fn cancel_task(&mut self, id: &str) -> Option<Task> {
+        self.tasks.get_mut(id).map(|task| {
+            task.status.state = TaskState::Canceled;
+            task.status.timestamp = Some(chrono::Utc::now().to_rfc3339());
+            task.clone()
+        })
+    }
+}
 
 /// State held by the wasmtime Store, providing WASI and HTTP contexts.
 struct TestState {
