@@ -131,11 +131,11 @@ fn handle_message_send(request: &Request) -> Response {
     use crate::a2a::protocol::agent;
 
     // In prost-generated types, MessageSendParams is now SendMessageRequest
-    let params: a2a_types::SendMessageRequest =
-        match serde_json::from_value(request.params.clone()) {
-            Ok(p) => p,
-            Err(e) => return Response::invalid_params(request.id.clone(), e.to_string()),
-        };
+    let params: a2a_types::SendMessageRequest = match serde_json::from_value(request.params.clone())
+    {
+        Ok(p) => p,
+        Err(e) => return Response::invalid_params(request.id.clone(), e.to_string()),
+    };
 
     let wit_params = match convert::message_send_params_to_wit(&params) {
         Ok(p) => p,
@@ -191,7 +191,8 @@ fn handle_tasks_cancel(request: &Request) -> Response {
     use crate::a2a::protocol::agent;
 
     // Use a2a-types CancelTaskRequest for consistency with protobuf
-    let params: a2a_types::CancelTaskRequest = match serde_json::from_value(request.params.clone()) {
+    let params: a2a_types::CancelTaskRequest = match serde_json::from_value(request.params.clone())
+    {
         Ok(p) => p,
         Err(e) => return Response::invalid_params(request.id.clone(), e.to_string()),
     };

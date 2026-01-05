@@ -84,9 +84,7 @@ pub fn part_to_a2a(part: Part) -> Result<a2a_types::Part, String> {
 /// Note: Only TextPart is fully implemented. FilePart and DataPart return errors.
 pub fn part_from_a2a(part: &a2a_types::Part) -> Result<Part, String> {
     match &part.part {
-        Some(a2a_types::part::Part::Text(text)) => Ok(Part::Text(TextPart {
-            text: text.clone(),
-        })),
+        Some(a2a_types::part::Part::Text(text)) => Ok(Part::Text(TextPart { text: text.clone() })),
         Some(a2a_types::part::Part::File(_)) => Err("FilePart not implemented".to_string()),
         Some(a2a_types::part::Part::Data(_)) => Err("DataPart not implemented".to_string()),
         None => Err("Part has no content".to_string()),
@@ -298,9 +296,7 @@ pub fn message_send_params_to_wit(
 }
 
 /// Convert a2a-types SendMessageConfiguration to WIT MessageSendConfig.
-fn message_send_config_from_a2a(
-    config: &a2a_types::SendMessageConfiguration,
-) -> MessageSendConfig {
+fn message_send_config_from_a2a(config: &a2a_types::SendMessageConfiguration) -> MessageSendConfig {
     MessageSendConfig {
         accepted_output_modes: if config.accepted_output_modes.is_empty() {
             None

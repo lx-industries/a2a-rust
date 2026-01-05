@@ -69,7 +69,11 @@ impl AgentHost for TestState {
     }
 
     /// Process incoming message (blocking) - returns a simple echo response
-    async fn on_message(&mut self, _tenant: Option<String>, params: MessageSendParams) -> Result<SendResponse, A2aError> {
+    async fn on_message(
+        &mut self,
+        _tenant: Option<String>,
+        params: MessageSendParams,
+    ) -> Result<SendResponse, A2aError> {
         // Extract text from the first part of the message for echoing
         let echo_text = params
             .message
@@ -117,7 +121,11 @@ impl AgentHost for TestState {
     }
 
     /// Handle cancellation - returns None (task not found)
-    async fn on_cancel_task(&mut self, _tenant: Option<String>, _name: String) -> Result<Option<Task>, A2aError> {
+    async fn on_cancel_task(
+        &mut self,
+        _tenant: Option<String>,
+        _name: String,
+    ) -> Result<Option<Task>, A2aError> {
         Ok(None)
     }
 }
