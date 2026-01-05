@@ -49,18 +49,17 @@ if __name__ == '__main__':
 
     # This will be the authenticated extended agent card
     # It includes the additional 'extended_skill'
-    specific_extended_agent_card = public_agent_card.model_copy(
-        update={
-            'name': 'Hello World Agent - Extended Edition',  # Different name for clarity
-            'description': 'The full-featured hello world agent for authenticated users.',
-            'version': '1.0.1',  # Could even be a different version
-            # Capabilities and other fields like url, default_input_modes, default_output_modes,
-            # supports_authenticated_extended_card are inherited from public_agent_card unless specified here.
-            'skills': [
-                skill,
-                extended_skill,
-            ],  # Both skills for the extended card
-        }
+    # NOTE: With the proto-based SDK, we create a new message instead of using Pydantic model_copy
+    specific_extended_agent_card = AgentCard(
+        name='Hello World Agent - Extended Edition',
+        description='The full-featured hello world agent for authenticated users.',
+        url='http://localhost:9999/',
+        version='1.0.1',
+        default_input_modes=['text'],
+        default_output_modes=['text'],
+        capabilities=AgentCapabilities(streaming=True),
+        skills=[skill, extended_skill],
+        supports_authenticated_extended_card=True,
     )
 
     request_handler = DefaultRequestHandler(
