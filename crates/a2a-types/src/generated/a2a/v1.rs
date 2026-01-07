@@ -329,10 +329,8 @@ pub struct AgentCard {
     pub capabilities: ::core::option::Option<AgentCapabilities>,
     /// The security scheme details used for authenticating with this agent.
     #[prost(map = "string, message", tag = "8")]
-    pub security_schemes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        SecurityScheme,
-    >,
+    pub security_schemes:
+        ::std::collections::HashMap<::prost::alloc::string::String, SecurityScheme>,
     /// protolint:disable REPEATED_FIELD_NAMES_PLURALIZED
     /// Security requirements for contacting the agent.
     #[prost(message, repeated, tag = "9")]
@@ -615,10 +613,8 @@ pub struct AuthorizationCodeOAuthFlow {
     pub refresh_url: ::prost::alloc::string::String,
     /// The available scopes for the OAuth2 security scheme.
     #[prost(map = "string, string", tag = "4")]
-    pub scopes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
+    pub scopes:
+        ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
 }
 /// --8<-- \[start:ClientCredentialsOAuthFlow\]
 /// Defines configuration details for the OAuth 2.0 Client Credentials flow.
@@ -632,10 +628,8 @@ pub struct ClientCredentialsOAuthFlow {
     pub refresh_url: ::prost::alloc::string::String,
     /// The available scopes for the OAuth2 security scheme.
     #[prost(map = "string, string", tag = "3")]
-    pub scopes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
+    pub scopes:
+        ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
 }
 /// --8<-- \[start:ImplicitOAuthFlow\]
 /// Defines configuration details for the OAuth 2.0 Implicit flow.
@@ -649,10 +643,8 @@ pub struct ImplicitOAuthFlow {
     pub refresh_url: ::prost::alloc::string::String,
     /// The available scopes for the OAuth2 security scheme.
     #[prost(map = "string, string", tag = "3")]
-    pub scopes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
+    pub scopes:
+        ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
 }
 /// --8<-- \[start:PasswordOAuthFlow\]
 /// Defines configuration details for the OAuth 2.0 Resource Owner Password flow.
@@ -666,10 +658,8 @@ pub struct PasswordOAuthFlow {
     pub refresh_url: ::prost::alloc::string::String,
     /// The available scopes for the OAuth2 security scheme.
     #[prost(map = "string, string", tag = "3")]
-    pub scopes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
+    pub scopes:
+        ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
 }
 /// /////////// Request Messages ///////////
 /// --8<-- \[start:SendMessageRequest\]
