@@ -44,6 +44,29 @@ image:rust-x86_64-unknown-linux-gnu:
     docker build -t $OCI_PATH $DOCKERFILE_DIR
     docker save $OCI_PATH -o image.tar
 
+push:rust-x86_64-unknown-linux-gnu:
+  extends: .docker-in-docker
+  stage: images
+  needs:
+    - image:rust-x86_64-unknown-linux-gnu
+  variables:
+    DOCKERFILE_DIR: "images/rust/x86_64-unknown-linux-gnu"
+    OCI_IMAGE_NAME: "images/rust"
+    OCI_IMAGE_VARIANT: "x86_64-unknown-linux-gnu"
+  rules:
+    - if: '$IMAGE_PUSH_FORCE == "all" || $IMAGE_PUSH_FORCE == "rust-x86_64-unknown-linux-gnu"'
+    - changes:
+        paths:
+          - "images/rust/x86_64-unknown-linux-gnu/Dockerfile"
+          - ".gitlab/ci/images.gitlab-ci.yml"
+      if: '$CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
+  script: |
+    IMAGE_TAG=$(grep "^FROM rust:" ${DOCKERFILE_DIR}/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
+    OCI_PATH="$CI_REGISTRY_IMAGE/${OCI_IMAGE_NAME}:${IMAGE_TAG}-${OCI_IMAGE_VARIANT}"
+    docker load -i image.tar
+    docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    docker push $OCI_PATH
+
 build-image:wasm32-wasip2:
   extends: .docker-in-docker
   stage: images
