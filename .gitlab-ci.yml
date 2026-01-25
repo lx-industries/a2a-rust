@@ -25,6 +25,16 @@ variables:
   # renovate: datasource=npm depName=conventional-changelog-conventionalcommits
   CONVENTIONAL_CHANGELOG_CONVENTIONALCOMMITS_VERSION: "9.1.0"
 
+  # Pipeline control parameters
+  IMAGE_BUILD_FORCE:
+    description: "Build and push images even when there are no changes."
+    options:
+      - "false"
+      - "all"
+      - "x86_64-unknown-linux-gnu"
+      - "wasm32-wasip2"
+    value: "false"
+
 # Workflow rules for automatic pipeline management
 workflow:
   auto_cancel:

@@ -17,7 +17,7 @@ build-image:x86_64-unknown-linux-gnu:
   rules:
     - changes:
         - images/rust/x86_64-unknown-linux-gnu/**/*
-    - if: '$FORCE_BUILD_IMAGES == "true"'
+    - if: '$IMAGE_BUILD_FORCE == "all" || $IMAGE_BUILD_FORCE == "x86_64-unknown-linux-gnu"'
   script:
     - RUST_VERSION=$(grep "^FROM rust:" images/rust/x86_64-unknown-linux-gnu/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
     - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
@@ -31,7 +31,7 @@ build-image:wasm32-wasip2:
   rules:
     - changes:
         - images/rust/wasm32-wasip2/**/*
-    - if: '$FORCE_BUILD_IMAGES == "true"'
+    - if: '$IMAGE_BUILD_FORCE == "all" || $IMAGE_BUILD_FORCE == "wasm32-wasip2"'
   script:
     - RUST_VERSION=$(grep "^FROM rust:" images/rust/wasm32-wasip2/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
     - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
