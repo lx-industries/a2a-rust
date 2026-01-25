@@ -21,8 +21,9 @@ build-image:x86_64-unknown-linux-gnu:
   script:
     - RUST_VERSION=$(grep "^FROM rust:" images/rust/x86_64-unknown-linux-gnu/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
     - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
-    - docker build -t ${CI_REGISTRY_IMAGE}/rust/x86_64-unknown-linux-gnu:${RUST_VERSION} images/rust/x86_64-unknown-linux-gnu
-    - docker push ${CI_REGISTRY_IMAGE}/rust/x86_64-unknown-linux-gnu:${RUST_VERSION}
+    # Docker Hub convention: variant goes in tag, not image name (like python:3.12-slim, node:20-alpine)
+    - docker build -t ${CI_REGISTRY_IMAGE}/rust:${RUST_VERSION}-x86_64-unknown-linux-gnu images/rust/x86_64-unknown-linux-gnu
+    - docker push ${CI_REGISTRY_IMAGE}/rust:${RUST_VERSION}-x86_64-unknown-linux-gnu
 
 build-image:wasm32-wasip2:
   extends: .docker-in-docker
@@ -34,5 +35,6 @@ build-image:wasm32-wasip2:
   script:
     - RUST_VERSION=$(grep "^FROM rust:" images/rust/wasm32-wasip2/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
     - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
-    - docker build -t ${CI_REGISTRY_IMAGE}/rust/wasm32-wasip2:${RUST_VERSION} images/rust/wasm32-wasip2
-    - docker push ${CI_REGISTRY_IMAGE}/rust/wasm32-wasip2:${RUST_VERSION}
+    # Docker Hub convention: variant goes in tag, not image name (like python:3.12-slim, node:20-alpine)
+    - docker build -t ${CI_REGISTRY_IMAGE}/rust:${RUST_VERSION}-wasm32-wasip2 images/rust/wasm32-wasip2
+    - docker push ${CI_REGISTRY_IMAGE}/rust:${RUST_VERSION}-wasm32-wasip2
