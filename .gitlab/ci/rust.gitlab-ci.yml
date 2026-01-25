@@ -25,7 +25,7 @@
 # Base template for all Rust jobs
 .rust-template:
   # Docker Hub convention: variant goes in tag, not image name (like python:3.12-slim, node:20-alpine)
-  image: registry.gitlab.com/lx-industries/a2a-rust/rust:1.92.0-x86_64-unknown-linux-gnu@sha256:a933303684495cce4cf74380ad1ffc4cfa38f14a014b5405d09f136e497f08ef
+  image: registry.gitlab.com/lx-industries/a2a-rust/images/rust:1.92.0-x86_64-unknown-linux-gnu@sha256:df85fd517be782ee7fc1cd27d7a792276a1b46b4e619738a4b9e845bd14ca3a6
   variables:
     CARGO_HOME: ".cargo"
     RUSTC_WRAPPER: sccache
@@ -55,7 +55,7 @@ build:x86_64-unknown-linux-gnu:
 build:wasm32-wasip2:
   extends: .rust-template
   # Docker Hub convention: variant goes in tag, not image name
-  image: registry.gitlab.com/lx-industries/a2a-rust/rust:1.92.0-wasm32-wasip2@sha256:5056a36708818371ac2ed1c6874d89c4b2e52ce1ec0852b9f0cbb261abca1e8d
+  image: registry.gitlab.com/lx-industries/a2a-rust/images/rust:1.92.0-wasm32-wasip2@sha256:286eee78770a8dcb0b2e43a958a4a3e88ff54eb1e718df03b59d4834fc235283
   stage: build
   script:
     - cargo build -p a2a-transport-wasi -p a2a-wasm-component --target wasm32-wasip2 --release --verbose
