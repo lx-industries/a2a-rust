@@ -36,7 +36,7 @@ image:rust-x86_64-unknown-linux-gnu:
         paths:
           - "images/rust/x86_64-unknown-linux-gnu/Dockerfile"
           - ".gitlab/ci/images.gitlab-ci.yml"
-      if: '$CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
+      if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
   script: |
     IMAGE_TAG=$(grep "^FROM rust:" ${DOCKERFILE_DIR}/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
     OCI_PATH="$CI_REGISTRY_IMAGE/${OCI_IMAGE_NAME}:${IMAGE_TAG}-${OCI_IMAGE_VARIANT}"
@@ -59,7 +59,7 @@ push:rust-x86_64-unknown-linux-gnu:
         paths:
           - "images/rust/x86_64-unknown-linux-gnu/Dockerfile"
           - ".gitlab/ci/images.gitlab-ci.yml"
-      if: '$CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
+      if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
   script: |
     IMAGE_TAG=$(grep "^FROM rust:" ${DOCKERFILE_DIR}/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
     OCI_PATH="$CI_REGISTRY_IMAGE/${OCI_IMAGE_NAME}:${IMAGE_TAG}-${OCI_IMAGE_VARIANT}"
@@ -93,7 +93,7 @@ image:rust-wasm32-wasip2:
         paths:
           - "images/rust/wasm32-wasip2/Dockerfile"
           - ".gitlab/ci/images.gitlab-ci.yml"
-      if: '$CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
+      if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
   script: |
     IMAGE_TAG=$(grep "^FROM rust:" ${DOCKERFILE_DIR}/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
     OCI_PATH="$CI_REGISTRY_IMAGE/${OCI_IMAGE_NAME}:${IMAGE_TAG}-${OCI_IMAGE_VARIANT}"
@@ -116,7 +116,7 @@ push:rust-wasm32-wasip2:
         paths:
           - "images/rust/wasm32-wasip2/Dockerfile"
           - ".gitlab/ci/images.gitlab-ci.yml"
-      if: '$CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
+      if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
   script: |
     IMAGE_TAG=$(grep "^FROM rust:" ${DOCKERFILE_DIR}/Dockerfile | sed -r "s/[^:]*:([0-9]+\.[0-9]+\.[0-9]+).*/\1/")
     OCI_PATH="$CI_REGISTRY_IMAGE/${OCI_IMAGE_NAME}:${IMAGE_TAG}-${OCI_IMAGE_VARIANT}"
