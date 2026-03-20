@@ -65,7 +65,7 @@ stages:
 
 # Commitlint job - validates commit messages
 commitlint:
-  image: node:22.22.0-bookworm@sha256:67475e9bf225f46c8629739f161928e1d3178983cf808f37af84798842f47ed4
+  image: node:22.22.0-bookworm@sha256:20a424ecd1d2064a44e12fe287bf3dae443aab31dc5e0c0cb6c74bef9c78911c
   stage: check
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
